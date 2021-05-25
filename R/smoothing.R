@@ -504,7 +504,14 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
     covariates = covariates, PDE_parameters = PDE_parameters, incidence_matrix = incidence_matrix,
     BC = BC, space_varying = space_varying, ndim = ndim, mydim = mydim,
     lambda = lambda, DOF.matrix = DOF.matrix)
-
+# Check covariates and observations sizes
+# (it is better to keep it out of the above function for more generality)
+  if(!is.null(covariates)){
+    if(nrow(covariates) != nrow(observations))
+      stop("'covariates' and 'observations' have incompatible size;")
+  }
+  if(ncol(observations) != 1)
+    stop("'observations' must be a column vector")
 
   # Check whether the locations coincide with the mesh nodes (should be put after all the validations)
   if (!is.null(locations))

@@ -1,6 +1,7 @@
 #include "../../FdaPDE.h"
 #include "../../Skeletons/Include/Regression_Skeleton.h"
 #include "../../Skeletons/Include/Regression_Skeleton_Time.h"
+#include "../../Skeletons/Include/Regression_Skeleton_Mixed.h"
 #include "../../Skeletons/Include/GAM_Skeleton.h"
 #include "../Include/Regression_Data.h"
 #include "../../FE_Assemblers_Solvers/Include/Integration.h"
@@ -134,6 +135,35 @@ extern "C"
 
 	    	return(NILSXP);
 	}
+
+	SEXP regression_Laplace_mixed(
+					SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits,
+					SEXP Rmesh, SEXP Rorder,SEXP Rmydim, SEXP Rndim, SEXP Rcovariates, 
+					SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
+					SEXP Rsearch, SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed,
+					SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
+	{
+	//Set input data
+	RegressionData regressionData(Rlocations, RbaryLocations, Robservations, RnumUnits, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch);
+	OptimizationData optimizationData(Roptim, Rlambda, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
+
+	UInt mydim=INTEGER(Rmydim)[0];
+	UInt ndim=INTEGER(Rndim)[0];
+
+    if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
+    	return(regression_skeleton_mixed<RegressionData, 1, 2, 2>(regressionData, optimizationData, Rmesh));
+    else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
+		return(regression_skeleton_mixed<RegressionData, 2, 2, 2>(regressionData, optimizationData, Rmesh));
+    else if(regressionData.getOrder()==1 && mydim==2 && ndim==3)
+		return(regression_skeleton_mixed<RegressionData, 1, 2, 3>(regressionData, optimizationData, Rmesh));
+   else if(regressionData.getOrder()==2 && mydim==2 && ndim==3)
+		return(regression_skeleton_mixed<RegressionData, 2, 2, 3>(regressionData, optimizationData, Rmesh));
+	else if(regressionData.getOrder()==1 && mydim==3 && ndim==3)
+		return(regression_skeleton_mixed<RegressionData, 1, 3, 3>(regressionData, optimizationData, Rmesh));
+    return(NILSXP);
+	}
+	
+	
 
 	//! This function manages the various options for GAM Spatial Regression
 	/*!

@@ -162,8 +162,8 @@ checkSmoothingParametersSize<-function(locations = NULL, observations, FEMbasis,
 {
   #################### Parameter Check #########################
   # Observations
-  if(ncol(observations) != 1)
-    stop("'observations' must be a column vector")
+  if(ncol(observations) < 1)
+    stop("'observations' must contain at least one element")
   if(nrow(observations) < 1)
     stop("'observations' must contain at least one element")
   
@@ -182,12 +182,6 @@ checkSmoothingParametersSize<-function(locations = NULL, observations, FEMbasis,
       stop("'locations' and 'observations' have incompatible size;")
      if(dim(locations)[1]==dim(FEMbasis$mesh$nodes)[1] & dim(locations)[2]==dim(FEMbasis$mesh$nodes)[2] & !(sum(abs(locations[,1]))==sum(abs(FEMbasis$mesh$nodes[,1])) & sum(abs(locations[,2]))==sum(abs(FEMbasis$mesh$nodes[,2]))) )
       warning("The locations matrix has the same dimensions as the mesh nodes. If the locations you are using are the mesh nodes, set locations=NULL instead")
-  }
-    
-  #Covariates
-  if(!is.null(covariates)){
-    if(nrow(covariates) != nrow(observations))
-      stop("'covariates' and 'observations' have incompatible size;")
   }
   
   # Incidence matrix
@@ -215,7 +209,7 @@ checkSmoothingParametersSize<-function(locations = NULL, observations, FEMbasis,
         stop("At least one index in 'BC_indices' larger then the number of 'nodes' in the mesh;")
     }
   }
-  
+
   # PDE_parameters
   if(!is.null(PDE_parameters) & space_varying==FALSE){
     if(!all.equal(dim(PDE_parameters$K), c(ndim,ndim)))
@@ -275,7 +269,8 @@ checkSmoothingParametersSize<-function(locations = NULL, observations, FEMbasis,
     if(is.null(lambda))
     {
       stop("The number of rows of DOF.matrix is different from the number of lambda")
-    } else if(nrow(DOF.matrix)!=length(lambda))
+    } 
+    else if(nrow(DOF.matrix)!=length(lambda))
     {
       stop("The number of rows of DOF.matrix is different from the number of lambda")
     }

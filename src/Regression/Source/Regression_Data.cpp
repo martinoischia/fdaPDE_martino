@@ -42,6 +42,35 @@ RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robser
 	arealDataAvg_ = INTEGER(RarealDataAvg)[0];
 }
 
+
+// mixed
+RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP Rorder, SEXP Rcovariates,
+			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch):
+			locations_(Rlocations)
+{
+	flag_SpaceTime_=false;
+	flag_Mixed_=true;
+
+	setBaryLocations(RbaryLocations);
+	setIncidenceMatrix(RincidenceMatrix);
+	setObservationsTime(Robservations);
+	setCovariates(Rcovariates);
+
+	num_units_ = INTEGER(RnumUnits)[0];
+	order_ =  INTEGER(Rorder)[0];
+	search_ =  INTEGER(Rsearch)[0];
+	UInt length_indexes = Rf_length(RBCIndices);
+
+	bc_indices_.assign(INTEGER(RBCIndices), INTEGER(RBCIndices) +  length_indexes);
+
+	bc_values_.assign(REAL(RBCValues),REAL(RBCValues) + Rf_length(RBCIndices));
+	
+	arealDataAvg_ = INTEGER(RarealDataAvg)[0];
+}
+
+
+
+
 RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
 	SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch) :
 		locations_(Rlocations)
@@ -166,6 +195,7 @@ void RegressionData::setObservationsTime(SEXP Robservations)
 	//std::cout<<"Observations #"<<observations_.size()<<std::endl<<observations_<<std::endl;
 	//for(auto i=0;i<observations_indices_.size();++i)	std::cout<<observations_indices_[i]<<std::endl;
 }
+
 
 void RegressionData::setCovariates(SEXP Rcovariates)
 {

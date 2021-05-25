@@ -116,7 +116,7 @@ class MixedFERegressionBase
 		void setA(const MeshHandler<ORDER, mydim, ndim> & mesh_);
 		//! A member function which sets psi_t_
 		void setpsi_t_(void);
-	        //! A member function which builds DMat, to be changed in apply for the temporal case
+	    //! A member function which builds DMat, to be changed in apply for the temporal case
 		void setDMat(void);
 		//! A member function which builds the Q matrix
 		void setQ(void);
@@ -126,8 +126,8 @@ class MixedFERegressionBase
 		void getRightHandData(VectorXr& rightHandData);
 		//! A method which builds all the matrices needed for assembling matrixNoCov_
 		void buildSpaceTimeMatrices();
-        //! A method which compute the tensorized psi for iterative method
-        void buildSpaceTimeMatrices_iterative();
+	    //! A method which compute the tensorized psi for iterative method
+      	void buildSpaceTimeMatrices_iterative();
 		//! A method computing dofs in case of exact GCV, it is called by computeDegreesOfFreedom
 		void computeDegreesOfFreedomExact(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
         //! Exact GCV: iterative method
@@ -176,7 +176,7 @@ class MixedFERegressionBase
 
 		//!A Constructor.
 		MixedFERegressionBase( const InputHandler & regressionData, OptimizationData & optimizationData,  UInt nnodes_) :
-			N_(nnodes_), M_(1), regressionData_(regressionData), optimizationData_(optimizationData), _dof(optimizationData.get_DOF_matrix())
+			N_(nnodes_), M_(regressionData.isMixed()? regressionData.getNumberofUnits() : 1), regressionData_(regressionData), optimizationData_(optimizationData), _dof(optimizationData.get_DOF_matrix())
 			{
 		        isGAMData = regressionData.getisGAM();
 		        isIterative = false;

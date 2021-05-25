@@ -132,6 +132,96 @@ eval.FEM <- function(FEM, locations = NULL, incidence_matrix = NULL, search = "t
   return(as.matrix(res))
 }
 
+#' @export 
+eval.FEM.mixed <- function(FEM.mixed, locations=NULL, incidence_matrix = NULL, search = "tree", bary.locations=NULL)
+{
+  if (is.null(FEM.mixed))
+    stop("FEM.mixed required;  is NULL.")
+  if(class(FEM.mixed) != "FEM.mixed")
+    stop("'FEM.mixed' is not of class 'FEM.mixed'")
+
+  #if locations is null but bary.locations is not null, use the locations in bary.locations
+  if(is.null(locations) & !is.null(bary.locations)) {
+    locations = bary.locations$locations
+    locations = as.matrix(locations)
+  }
+  if (is.null(locations) && is.null(incidence_matrix))
+    stop("'locations' NOR 'incidence_matrix' required;  both are NULL.")
+  if (!is.null(locations) && !is.null(incidence_matrix))
+    stop("'locations' NOR 'incidence_matrix' required; both are given.")
+
+  if(!is.null(locations))
+   if(dim(locations)[1]==dim(FEM.mixed$FEMbasis$mesh$nodes)[1] & dim(locations)[2]==dim(FEM.mixed$FEMbasis$mesh$nodes)[2])
+    warning("The locations matrix has the same dimensions as the mesh nodes. If you want to get the FEM object evaluation
+            at the mesh nodes, use FEM$coeff instead")
+
+  if(search == "naive" || search == 1)
+    search=1
+  else if(search == "tree" || search == 2)
+    search=2
+  else if(search == "walking" || search == 3)
+    search=3
+
+  if(class(FEM.mixed$FEMbasis$mesh)=='mesh.2.5D' & search ==3){
+  stop("2.5D search must be either tree or naive.")
+  }
+
+  if(class(FEM.mixed$FEMbasis$mesh)=='mesh.3D' & search ==3){
+  stop("3D search must be either tree or naive.")
+  }
+
+  if (search != 1 & search != 2 & search != 3)
+    stop("search must be either tree or naive or walking.")
+
+  #Check the locations in 'bary.locations' and 'locations' are the same
+  if(!is.null(bary.locations) & !is.null(locations))
+  {
+    flag=TRUE
+    for (i in 1:nrow(locations)) {
+      if (!(locations[i,1]==bary.locations$locations[i,1] & locations[i,2] == bary.locations$locations[i,2])) {
+        flag = FALSE
+        break
+      }
+    }
+    if (flag == FALSE) {
+      stop("Locations are not same as the one in barycenter information.")
+    }
+  }  # end of bary.locations
+
+  if (is.null(locations))
+    locations <- matrix(nrow = 0, ncol = 2)
+  else
+    incidence_matrix <- matrix(nrow = 0, ncol = 1)
+
+
+  ################## End checking parameters, sizes and conversion #############################
+  res <- NULL
+  orig_coeff = FEM.mixed$coeff
+  nnodes = dim(FEM.mixed$FEMbasis$mesh$nodes)[1]
+  
+  for (i in 1:(FEM.mixed$num_units)) {
+    FEM.mixed$coeff = orig_coeff[((i-1)*nnodes+1):(i*nnodes),]
+    if(class(FEM.mixed$FEMbasis$mesh)=='mesh.2D'){
+      ndim = 2
+      mydim = 2
+      tmp = CPP_eval.FEM(FEM.mixed, locations, incidence_matrix, TRUE, ndim, mydim, search, bary.locations)
+    }else if(class(FEM.mixed$FEMbasis$mesh)=='mesh.2.5D'){
+      ndim = 3
+      mydim = 2
+      tmp = CPP_eval.manifold.FEM(FEM.mixed, locations, incidence_matrix, TRUE, ndim, mydim, search, bary.locations)
+    }else if(class(FEM.mixed$FEMbasis$mesh)=='mesh.3D'){
+      ndim = 3
+      mydim = 3
+      tmp = CPP_eval.volume.FEM(FEM.mixed, locations, incidence_matrix, TRUE, ndim, mydim, search, bary.locations)
+    }
+    res = rbind(res, tmp) 
+  }
+
+
+  return(as.matrix(res))
+
+
+}
 #' Evaluate a FEM.time object at a set of point locations
 #'
 #' @param FEM.time A \code{FEM.time} object to be evaluated.

@@ -36,6 +36,8 @@ class  RegressionData
 
 		// Other parameters
 		UInt order_;
+		// Number of statistical units for mixed case
+		UInt num_units_;
 
 		// Boundary + Initial
 		std::vector<Real> bc_values_;
@@ -53,8 +55,9 @@ class  RegressionData
 		bool flag_mass_;				//!< Mass penalization, only for separable version (flag_parabolic_==FALSE)
 		bool flag_parabolic_;
 		bool flag_iterative_;     //!<True if iterative-method for space time smoothing is selected
+		bool flag_Mixed_ = false; // TRUE if mixed smoothing
 		bool flag_SpaceTime_; // TRUE if space time smoothing
-		UInt search_; // search algorith type
+		UInt search_; // search algorithm type
 
         // Iterative method
         UInt max_num_iterations_; //!< Max number of iterations allowed
@@ -95,6 +98,10 @@ class  RegressionData
 		*/
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
 			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch);
+		
+		// space-mixed
+		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP Rorder, SEXP Rcovariates,
+			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch);			
 
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
 			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative,SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch);
@@ -116,6 +123,12 @@ class  RegressionData
 		UInt getNumberofObservations(void) const {return observations_.size();}
 		//! A method returning the number of space observations
 		UInt getNumberofSpaceObservations(void) const {return observations_.size()/time_locations_.size();}
+		//! A method returning the number of observations for each statistical units (assumes the same spatial locations) 
+		UInt const getNumberofMixedObservations() const {return observations_.size()/num_units_;}
+
+		//! A method returning the number statistical units
+		UInt getNumberofUnits(void) const {return num_units_;}
+		
 		//! A method returning the number of time observations
 
 		UInt getNumberofTimeObservations(void) const {return time_locations_.size();}
@@ -165,6 +178,7 @@ class  RegressionData
 		const VectorXr * getWeightsMatrix(void) const {return &WeightsMatrix_;}
 
         bool isSpaceTime(void) const {return flag_SpaceTime_;}
+		  bool isMixed(void) const {return flag_Mixed_;}
 		bool getFlagMass(void) const {return flag_mass_;}
 		bool getFlagParabolic(void) const {return flag_parabolic_;}
         bool getFlagIterative(void) const {return flag_iterative_;}

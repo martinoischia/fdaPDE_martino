@@ -160,6 +160,24 @@ FEM<-function(coeff,FEMbasis)
   return(fclass)
 }
 
+FEM.mixed<-function(coeff,num_units,FEMbasis)
+{
+  if (is.null(coeff))
+    stop("coeff required;  is NULL.")
+  if (is.null(FEMbasis))
+    stop("FEMbasis required;  is NULL.")
+  if(class(FEMbasis) != "FEMbasis")
+    stop("FEMbasis not of class 'FEMbasis'")
+  coeff = as.matrix(coeff)
+  if(nrow(coeff) != (FEMbasis$nbasis*num_units))
+    stop("Number of row of 'coeff' different from number of basis*number of statistical units")
+
+  fclass = NULL
+  fclass = list(coeff=coeff, num_units=num_units, FEMbasis=FEMbasis)
+  class(fclass)<-"FEM.mixed"
+  return(fclass)
+}
+
 #' Define a spatio-temporal field by a Finite Element basis expansion
 #'
 #' @param coeff A vector or a matrix containing the coefficients for the spatio-temporal basis expansion. The number of rows
