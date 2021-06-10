@@ -143,9 +143,9 @@ class MixedFERegressionBase
 
 		// -- BUILD SYSTEM --
 		 //! Spatial version
-		void buildSystemMatrix(Real lambda);
+		void buildSystemMatrixNoCov(Real lambda);
 		//! Space-time version
-		void buildSystemMatrix(Real lambdaS, Real lambdaT);
+		void buildSystemMatrixNoCov(Real lambdaS, Real lambdaT);
 
 
 		// -- FACTORIZER --
@@ -163,7 +163,7 @@ class MixedFERegressionBase
 
         // -- methods for the iterative method --
         //! A method to initialize f
-        void initialize_f(Real lambdaS, UInt& lambdaS_index, UInt& lambdaT_index);
+        void initialize_f(Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
          //! A method to initialize g
         void initialize_g(Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
         //! A method that stops the iterative algorithm based on difference between functionals J_k J_k+1 or n_iterations > max_num_iterations .

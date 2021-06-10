@@ -18,8 +18,10 @@ SEXP regression_skeleton_mixed(InputHandler &regressionData, OptimizationData op
 	MeshHandler<ORDER, mydim, ndim> mesh(Rmesh, regressionData.getSearch());
 	MixedFERegression<InputHandler> regression(regressionData, optimizationData, mesh.num_nodes());
 	regression.preapply(mesh); // preliminary apply (preapply) to store all problem matrices
-	regression.apply();
-
+	if (regression.isIter())
+	    regression.apply_iterative();
+	else
+		regression.apply();
 	const MatrixXv& solution = regression.getSolution();
 	const MatrixXr& dof = regression.getDOF();
 	const MatrixXr & GCV = regression.getGCV();

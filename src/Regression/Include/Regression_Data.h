@@ -54,7 +54,7 @@ class  RegressionData
 
 		bool flag_mass_;				//!< Mass penalization, only for separable version (flag_parabolic_==FALSE)
 		bool flag_parabolic_;
-		bool flag_iterative_;     //!<True if iterative-method for space time smoothing is selected
+		bool flag_iterative_ = false;     //!<True if iterative-method for space time smoothing is selected
 		bool flag_Mixed_ = false; // TRUE if mixed smoothing
 		bool flag_SpaceTime_; // TRUE if space time smoothing
 		UInt search_; // search algorithm type
@@ -62,6 +62,12 @@ class  RegressionData
         // Iterative method
         UInt max_num_iterations_; //!< Max number of iterations allowed
         Real threshold_; //!< Limit in difference among J_k and J_k+1 for which we stop iterative method.
+
+		//utilities
+		//! A method returning the number of space observations
+		UInt getNumberofSpaceObservationsTime(void) const {return observations_.size()/time_locations_.size();}
+		//! A method returning the number of observations for each statistical units (assumes the same spatial locations) 
+		UInt const getNumberofSpaceObservationsMixed() const {return observations_.size()/num_units_;}
 
 		// -- SETTERS --
 		void setObservations(SEXP Robservations);
@@ -121,10 +127,17 @@ class  RegressionData
 		const VectorXr * getObservations(void) const {return &observations_;}
 		//! A method returning the number of observations
 		UInt getNumberofObservations(void) const {return observations_.size();}
-		//! A method returning the number of space observations
-		UInt getNumberofSpaceObservations(void) const {return observations_.size()/time_locations_.size();}
-		//! A method returning the number of observations for each statistical units (assumes the same spatial locations) 
-		UInt const getNumberofMixedObservations() const {return observations_.size()/num_units_;}
+
+		UInt getNumberofSpaceObservations(void) const {
+			if (this->isSpaceTime())
+				return getNumberofSpaceObservationsTime();
+			else if (this->isMixed())
+				return getNumberofSpaceObservationsMixed();
+			else 
+				return getNumberofObservations();			
+			}
+
+		
 
 		//! A method returning the number statistical units
 		UInt getNumberofUnits(void) const {return num_units_;}
