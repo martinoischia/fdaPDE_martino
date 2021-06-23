@@ -166,8 +166,8 @@ class MixedFERegressionBase
         void initialize_f(Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
          //! A method to initialize g
         void initialize_g(Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
-        //! A method that stops the iterative algorithm based on difference between functionals J_k J_k+1 or n_iterations > max_num_iterations .
-        bool stopping_criterion(UInt& index, Real J, Real J_old);
+        //! A method that stops the iterative algorithm based on difference between functionals J_k J_k+1 or n_iterations > max_num_iterations or residual.
+        bool stopping_criterion(UInt& index, Real J, Real J_old, const VectorXr & r, Real normalizing_factor ) const;
         //!A method that computes and return the current value of the functional J. It is divided in parametric and non parametric part.
         Real compute_J(UInt& lambdaS_index, UInt& lambdaT_index);
         //!  A methdd that update the system rhs for each time instant (iterative method)
@@ -179,7 +179,7 @@ class MixedFERegressionBase
 			N_(nnodes_), M_(regressionData.isMixed()? regressionData.getNumberofUnits() : 1), regressionData_(regressionData), optimizationData_(optimizationData), _dof(optimizationData.get_DOF_matrix())
 			{
 		        isGAMData = regressionData.getisGAM();
-		        isIterative = false;
+		        isIterative = regressionData_.getFlagIterative();
 			};
 
 		MixedFERegressionBase(const std::vector<Real> & mesh_time, const InputHandler & regressionData, OptimizationData & optimizationData, UInt nnodes_) :
@@ -244,6 +244,9 @@ class MixedFERegressionBase
 
 		//! A function that given a vector u, performs Q*u efficiently
 		MatrixXr LeftMultiplybyQ(const MatrixXr & u);
+		VectorXr LeftMultiplyByMonolithic_iterative(const VectorXr & v, Real lambdaS, Real lambdaT);
+		//!A method that computes and return the residual of the monolithic system for vector v.
+		VectorXr compute_residual(VectorXr & v, Real lambdaS, Real lambdaT) { return (LeftMultiplyByMonolithic_iterative( v, lambdaS, lambdaT ) - _rightHandSide);};
 
 		// -- APPLY --
 		//! The function solving the system, used by the children classes. Saves the result in _solution

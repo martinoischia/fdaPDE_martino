@@ -62,6 +62,7 @@ class  RegressionData
         // Iterative method
         UInt max_num_iterations_; //!< Max number of iterations allowed
         Real threshold_; //!< Limit in difference among J_k and J_k+1 for which we stop iterative method.
+		Real threshold_residual;
 
 		//utilities
 		//! A method returning the number of space observations
@@ -103,14 +104,14 @@ class  RegressionData
 
 		*/
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
-			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch);
+			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch); // 10 sexp
 		
 		// space-mixed
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP Rorder, SEXP Rcovariates,
-			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch);			
+			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual); // 15 sexp 			
 
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
-			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative,SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch);
+			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative,SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch); // 17 sexp
 
 		explicit RegressionData(Real* locations, UInt n_locations, UInt ndim, VectorXr & observations, UInt order, MatrixXr & covariates,
 			 VectorXr & WeightsMatrix, std::vector<UInt> & bc_indices, std::vector<Real> & bc_values,  MatrixXi & incidenceMatrix, bool arealDataAvg, UInt search);
@@ -151,6 +152,7 @@ class  RegressionData
         const UInt get_maxiter() const {return max_num_iterations_;}
         //! A method returning the treshold (iterative methos)
         const Real get_treshold() const {return threshold_;}
+        const Real get_treshold_residual() const {return threshold_residual;}
 
 		// Locations [[GM passng to const pointers??]]
 		//! A method returning the locations of the observations

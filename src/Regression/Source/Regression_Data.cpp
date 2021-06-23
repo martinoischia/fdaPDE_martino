@@ -44,8 +44,7 @@ RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robser
 
 
 // mixed
-RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP Rorder, SEXP Rcovariates,
-			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch):
+RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual):
 			locations_(Rlocations)
 {
 	flag_SpaceTime_=false;
@@ -59,6 +58,10 @@ RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robser
 	num_units_ = INTEGER(RnumUnits)[0];
 	order_ =  INTEGER(Rorder)[0];
 	search_ =  INTEGER(Rsearch)[0];
+	flag_iterative_ = INTEGER(RFLAG_ITERATIVE)[0];
+    max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
+    threshold_ =  REAL(Rthreshold)[0];
+	threshold_residual = REAL(Rthreshold_residual)[0];
 	UInt length_indexes = Rf_length(RBCIndices);
 
 	bc_indices_.assign(INTEGER(RBCIndices), INTEGER(RBCIndices) +  length_indexes);

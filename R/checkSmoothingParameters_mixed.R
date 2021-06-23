@@ -1,6 +1,6 @@
 # It's almost identical to the standard case, maybe can be made ugual?
 
-checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMbasis, covariates, PDE_parameters = NULL, BC = NULL, incidence_matrix = NULL, areal.data.avg = TRUE, search = 'tree', bary.locations = NULL, optim, lambda = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05)
+checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMbasis, covariates, PDE_parameters = NULL, BC = NULL, incidence_matrix = NULL, areal.data.avg = TRUE, search = 'tree', bary.locations = NULL, optim, lambda = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
  {
   #################### Full Consistency Parameter Check #########################
 
@@ -174,6 +174,19 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
   if(optim[1]==0 & lambda.optimization.tolerance!=0.05)
     warning("'lambda.optimization.tolerance' is not used in grid evaluation")
   
+  if (is.null(FLAG_ITERATIVE))
+    stop("FLAG_ITERATIVE required;  is NULL.")
+  if(!is.logical(FLAG_ITERATIVE))
+    stop("'FLAG_ITERATIVE' is not logical")
+
+  # Check max.steps and threshold for the iterative method 
+  if(!all.equal(max.steps, as.integer(max.steps)) || max.steps <= 0 )
+    stop("'max.steps' must be a positive integer.")
+  if( !is.numeric(threshold) || threshold <= 0)
+    stop("'threshold' must be a real positive")
+  if( !is.numeric(threshold_residual) || threshold_residual <= 0)
+    stop("'threshold_residual' must be a real positive")
+
   # Return information
   return(space_varying)
   }

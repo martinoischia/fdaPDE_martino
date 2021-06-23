@@ -3,7 +3,7 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis,
         incidence_matrix, areal.data.avg,
         search, bary.locations,
         optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed,
-        DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance)
+        DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
 {
   # Indexes in C++ starts from 0, in R from 1, opportune transformation
 
@@ -67,7 +67,7 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis,
   storage.mode(num_units) <- "integer"
   covariates <- as.matrix(covariates)
   storage.mode(covariates) <- "double"
-    storage.mode(ndim) <- "integer"
+  storage.mode(ndim) <- "integer"
   storage.mode(mydim) <- "integer"
   storage.mode(BC$BC_indices) <- "integer"
   storage.mode(BC$BC_values) <-"double"
@@ -84,8 +84,14 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis,
   storage.mode(DOF.stochastic.seed) <- "integer"
   storage.mode(GCV.inflation.factor) <- "double"
   storage.mode(lambda.optimization.tolerance) <- "double"
+  FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
+  storage.mode(FLAG_ITERATIVE)<-"integer"
+  storage.mode(max.steps) <- "integer"
+  storage.mode(threshold) <- "double"
+  storage.mode(threshold_residual) <- "double"
+
   ## Call C++ function
   bigsol <- .Call("regression_Laplace_mixed", locations, bary.locations, observations, num_units, FEMbasis$mesh, FEMbasis$order,
-                  mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, search, optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, PACKAGE = "fdaPDE")
+                  mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, search, optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, PACKAGE = "fdaPDE", FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
   return(bigsol)
 }

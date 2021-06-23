@@ -2,7 +2,7 @@
 smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
                            covariates, random_effect = NULL, PDE_parameters=NULL, BC = NULL,
                            incidence_matrix = NULL, areal.data.avg = TRUE,
-                           FLAG_ITERATIVE = FALSE, threshold = 10^(-4), max.steps = 50,
+                           FLAG_ITERATIVE = FALSE, threshold = 10^(-4),threshold_residual = 1e-8, max.steps = 50,
                            search = "tree", bary.locations = NULL, lambda = NULL,
                            lambda.selection.criterion = "grid", DOF.evaluation = NULL, lambda.selection.lossfunction = NULL,
                            DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -154,7 +154,7 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     }
   }
 
-  space_varying= checkSmoothingParameters_mixed (locations = locations, observations = observations, FEMbasis = FEMbasis, covariates = covariates, PDE_parameters = PDE_parameters, BC = BC, incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg, search = search, bary.locations = bary.locations, optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+  space_varying= checkSmoothingParameters_mixed (locations = locations, observations = observations, FEMbasis = FEMbasis, covariates = covariates, PDE_parameters = PDE_parameters, BC = BC, incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg, search = search, bary.locations = bary.locations, optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
 
   # if I have PDE non-sv case I need (constant) matrices as parameters
   if(!is.null(PDE_parameters) & space_varying==FALSE)
@@ -264,7 +264,7 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
         incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
         search = search, bary.locations = bary.locations,
         optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed,
-        DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+        DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual )
 
   } else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE){
 

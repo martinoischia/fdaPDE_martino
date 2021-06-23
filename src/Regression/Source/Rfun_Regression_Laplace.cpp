@@ -141,10 +141,10 @@ extern "C"
 					SEXP Rmesh, SEXP Rorder,SEXP Rmydim, SEXP Rndim, SEXP Rcovariates, 
 					SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
 					SEXP Rsearch, SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed,
-					SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
+					SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmaxsteps, SEXP Rthreshold_residual)
 	{
 	//Set input data
-	RegressionData regressionData(Rlocations, RbaryLocations, Robservations, RnumUnits, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch);
+	RegressionData regressionData(Rlocations, RbaryLocations, Robservations, RnumUnits, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch, RFLAG_ITERATIVE, Rthreshold, Rmaxsteps, Rthreshold_residual);
 	OptimizationData optimizationData(Roptim, Rlambda, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
 
 	UInt mydim=INTEGER(Rmydim)[0];
