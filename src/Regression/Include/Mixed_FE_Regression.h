@@ -70,7 +70,7 @@ class MixedFERegressionBase
 		//std::unique_ptr<Eigen::PartialPivLU<MatrixXr>>  matrixNoCovdec_{new Eigen::PartialPivLU<MatrixXr>}; //!< Stores the factorization of matrixNoCov_
 		Eigen::PartialPivLU<MatrixXr> Gdec_;	//!< Stores factorization of G =  C + [V * matrixNoCov^-1 * U]
 
-		Eigen::PartialPivLU<MatrixXr> WTW_;	//!< Stores the factorization of W^T * W
+		const typename InputHandler::inv_mat_type & WTW_ = regressionData_.getWTW_inv();	//!< Saves for later use the factorization of W^T * W
 		bool isWTWfactorized_ = false;
 		bool isRcomputed_ = false;
 		Eigen::SparseLU<SpMat> R0dec_; 		//!< Stores the factorization of R0_

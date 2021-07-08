@@ -265,16 +265,16 @@ void MixedFERegressionBase<InputHandler>::setH(void)
 	// Rprintf("Computing Projection Matrix\n");
 
 	UInt nlocations = regressionData_.getNumberofObservations();
-	const MatrixXr * Wp(this->regressionData_.getCovariates());
+	const auto * Wp(this->regressionData_.getCovariates());
 	bool ilbn = regressionData_.isLocationsByNodes();
-
-	if(ilbn)
+	if (!ilbn) H_ = (*Wp)*WTW_.solve(typename InputHandler::des_mat_type(Wp->transpose()));
+	else
 	{
 		const std::vector<UInt> * k = regressionData_.getObservationsIndices();
 
 		// Some rows might be discarded [[we probably have data for every node not only the points ???]]
 		UInt n_Wcols = Wp->cols();
-		MatrixXr * Wp_reduced  = new MatrixXr;
+		typename InputHandler::des_mat_type * Wp_reduced  = new typename InputHandler::des_mat_type;
 		Wp_reduced->resize(regressionData_.getNumberofObservations(), n_Wcols);
 
 		for (UInt i=0; i<nlocations; ++i)
@@ -282,17 +282,15 @@ void MixedFERegressionBase<InputHandler>::setH(void)
 		       UInt index_i = (*k)[i];
 		       for (auto j=0; j<n_Wcols; ++j)
 		       {
-			       (*Wp_reduced)(i,j) = (*Wp)(index_i,j);
+			       Wp_reduced->coeffRef(i,j) = Wp->coeff(index_i,j);
 		       }
 		}
-		Wp = Wp_reduced;
+		const typename InputHandler::des_mat_type Wt = Wp_reduced->transpose(); // Compute W^t
+		typename InputHandler::inv_mat_type solv;
+		solv.compute(Wt * (*Wp_reduced));
+		H_ = (*Wp_reduced) * solv.solve(Wt);		 // using cholesky LDLT decomposition for computing hat matrix
+		delete Wp_reduced;
 	}
-
-	MatrixXr Wt(Wp->transpose());		// Compute W^t
-	H_ = (*Wp)*(Wt*(*Wp)).ldlt().solve(Wt);	// using cholesky LDLT decomposition for computing hat matrix
-
-	if(ilbn)
-		delete Wp;
 }
 
 template<typename InputHandler>
@@ -392,17 +390,19 @@ MatrixXr MixedFERegressionBase<InputHandler>::LeftMultiplybyQ(const MatrixXr& u)
 			return P->asDiagonal()*u;
 	}
 	else
-	{
-		MatrixXr W(*(this->regressionData_.getCovariates()));
-		// Check factorization, if not present factorize the matrix W^t*W
-		if(isWTWfactorized_ == false)
-		{
-			if(P->size() == 0)
-				WTW_.compute(W.transpose()*W);
-			else
-				WTW_.compute(W.transpose()*P->asDiagonal()*W);
-			isWTWfactorized_=true; // Flag to no repeat the operation next time
-		}
+	{	
+		// This should be fixed because I did not take into account this case when I moved WTW to regressionData
+
+		const auto & W(*(this->regressionData_.getCovariates()));
+		// // Check factorization, if not present factorize the matrix W^t*W
+		// if(isWTWfactorized_ == false)
+		// {
+		// 	if(P->size() == 0)
+		// 		WTW_.compute(W.transpose()*W);
+		// 	else
+		// 		WTW_.compute(W.transpose()*P->asDiagonal()*W);
+		// 	isWTWfactorized_=true; // Flag to no repeat the operation next time
+		// }
 
 		MatrixXr Hu;
 		// Compute H (or I-Q) the projection on Col(W) and multiply it times u
@@ -639,7 +639,7 @@ void MixedFERegressionBase<InputHandler>::system_factorize()
 	// First phase: Factorization of matrixNoCov
 	matrixNoCovdec_.compute(matrixNoCov_);
 
-	const MatrixXr& W(*(this->regressionData_.getCovariates()));
+	const auto & W(*(this->regressionData_.getCovariates()));
 
 	if(regressionData_.getCovariates()->rows() != 0 && !isUVComputed)
 	{ // Needed only if there are covariates, else we can stop before
@@ -700,7 +700,7 @@ MatrixXr MixedFERegressionBase<InputHandler>::solve_covariates_iter(const Eigen:
     //Iterative method, called only if there are covariates
     //splits the matrices U,V (built in system_factorize) and find the solution
 
-    const MatrixXr& W(*(this->regressionData_.getCovariates()));
+    const auto & W(*(this->regressionData_.getCovariates()));
 	MatrixXr V_k = MatrixXr::Zero(V_.rows(), 2 * N_);
 	V_k.leftCols(N_) = V_.block(0, time_index * N_, V_.rows(), N_);
 
@@ -1164,7 +1164,7 @@ template<typename InputHandler>
 template<UInt ORDER, UInt mydim, UInt ndim, typename A>
 void MixedFERegressionBase<InputHandler>::preapply(EOExpr<A> oper, const ForcingTerm & u, const MeshHandler<ORDER, mydim, ndim> & mesh_)
 {
-	const MatrixXr * Wp = regressionData_.getCovariates();
+	const auto * Wp = regressionData_.getCovariates();
 
 	UInt nnodes = N_*M_;	// total number of spatio-temporal nodes
 	FiniteElement<ORDER, mydim, ndim> fe;
@@ -1388,7 +1388,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			// regression coefficients computation
 			if(regressionData_.getCovariates()->rows()!=0)
 			{
-				MatrixXr W(*(this->regressionData_.getCovariates()));
+				const auto & W(*(this->regressionData_.getCovariates()));
 				VectorXr P(*(this->regressionData_.getWeightsMatrix()));
 				VectorXr beta_rhs;
 				if( P.size() != 0)
@@ -1486,7 +1486,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void)
 
 
             if (regressionData_.getCovariates()->rows() != 0) {
-                const MatrixXr& W(*(this->regressionData_.getCovariates()));
+                const auto & W(*(this->regressionData_.getCovariates()));
                 VectorXr tmp;
                 tmp = W.transpose() * (*obsp - psi_ * _solution(s, t).topRows(psi_.cols()));
                 _beta(s, t) = WTW_.solve(tmp);
@@ -1536,7 +1536,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void)
 
                 // covariates computation
                 if (regressionData_.getCovariates()->rows() != 0) {
-                    const MatrixXr & W(*(this->regressionData_.getCovariates()));
+                    const auto & W(*(this->regressionData_.getCovariates()));
                     VectorXr beta_rhs;
                     beta_rhs = W.transpose() * (*obsp - psi_ * _solution(s, t).topRows(psi_.cols()));
                     _beta(s, t) = WTW_.solve(beta_rhs);
@@ -1721,10 +1721,8 @@ VectorXr MixedFERegressionBase<InputHandler>::LeftMultiplyByMonolithic_iterative
 	VectorXr res = VectorXr::Zero (2*N_*M_);
 	Real delta;
 	MatrixXr U_k;
-	if (regressionData_.isSpaceTime())
-		delta = mesh_time_[1] - mesh_time_[0];
-	if (regressionData_.getCovariates()->rows() != 0)
-		U_k = MatrixXr::Zero(N_, U_.cols());
+	if (regressionData_.isSpaceTime()) delta = mesh_time_[1] - mesh_time_[0];
+	
 	// upper part
 	for (UInt k = 0; k < M_; ++k)
 	{
@@ -1766,7 +1764,7 @@ Real MixedFERegressionBase<InputHandler>::compute_J(UInt &lambdaS_index, UInt &l
 	Real lambdaS = (optimizationData_.get_lambda_S())[lambdaS_index];
 	UInt nlocations = regressionData_.getNumberofSpaceObservations();
 	const VectorXr *obsp = regressionData_.getObservations();
-	const MatrixXr &W(*(this->regressionData_.getCovariates()));
+	const auto & W(*(this->regressionData_.getCovariates()));
 	MatrixXr W_k_;
 	for (UInt k = 0; k < M_; ++k)
 	{
@@ -1785,20 +1783,20 @@ Real MixedFERegressionBase<InputHandler>::compute_J(UInt &lambdaS_index, UInt &l
 
 //----------------------------------------------------------------------------//
 
-template<>
-class MixedFERegression<RegressionData>: public MixedFERegressionBase<RegressionData>
+template<typename MatrixType>
+class MixedFERegression<RegressionData<MatrixType>>: public MixedFERegressionBase<RegressionData<MatrixType>>
 {
 	public:
-		MixedFERegression(const RegressionData & regressionData,  OptimizationData & optimizationData, UInt nnodes_):
-			MixedFERegressionBase<RegressionData>(regressionData, optimizationData, nnodes_) {};
-		MixedFERegression(const std::vector<Real> & mesh_time, const RegressionData & regressionData, OptimizationData & optimizationData, UInt nnodes_):
-			MixedFERegressionBase<RegressionData>(mesh_time, regressionData, optimizationData, nnodes_) {};
+		MixedFERegression(const RegressionData<MatrixType> & regressionData,  OptimizationData & optimizationData, UInt nnodes_):
+			MixedFERegressionBase<RegressionData<MatrixType>>(regressionData, optimizationData, nnodes_) {};
+		MixedFERegression(const std::vector<Real> & mesh_time, const RegressionData<> & regressionData, OptimizationData & optimizationData, UInt nnodes_):
+			MixedFERegressionBase<RegressionData<MatrixType>>(mesh_time, regressionData, optimizationData, nnodes_) {};
 
 		template<UInt ORDER, UInt mydim, UInt ndim>
 		void preapply(const MeshHandler<ORDER,mydim,ndim> & mesh)
 		{
 			typedef EOExpr<Stiff> ETStiff; Stiff EStiff; ETStiff stiff(EStiff);
-		    MixedFERegressionBase<RegressionData>::preapply(stiff, ForcingTerm(), mesh);
+		    MixedFERegressionBase<RegressionData<MatrixType>>::preapply(stiff, ForcingTerm(), mesh);
 		}
 };
 
@@ -1924,17 +1922,17 @@ void MixedFDRegression<InputHandler>::setDerOperator(void)
 
 // -- GAM PART --
 template<>
-class MixedFERegression<GAMDataLaplace>: public MixedFERegressionBase<RegressionData>
+class MixedFERegression<GAMDataLaplace>: public MixedFERegressionBase<RegressionData<>>
 {
 	public:
-		MixedFERegression(const RegressionData & regressionData, OptimizationData & optimizationData, UInt nnodes_):
-			MixedFERegressionBase<RegressionData>(regressionData, optimizationData, nnodes_) {};
+		MixedFERegression(const RegressionData<> & regressionData, OptimizationData & optimizationData, UInt nnodes_):
+			MixedFERegressionBase<RegressionData<>>(regressionData, optimizationData, nnodes_) {};
 
 		template<UInt ORDER, UInt mydim, UInt ndim>
 		void preapply(const MeshHandler<ORDER,mydim,ndim> & mesh)
 		{
 			typedef EOExpr<Stiff> ETStiff; Stiff EStiff; ETStiff stiff(EStiff);
-			MixedFERegressionBase<RegressionData>::preapply(stiff, ForcingTerm(), mesh);
+			MixedFERegressionBase<RegressionData<>>::preapply(stiff, ForcingTerm(), mesh);
 		}
 };
 

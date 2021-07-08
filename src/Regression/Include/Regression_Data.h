@@ -11,8 +11,13 @@
  * series of method for their access, so isolating the more the possible the specific
  * code for R/C++ data conversion.
 */
+template <typename MatrixType = MatrixXr>
 class  RegressionData
 {
+	public:
+	typedef MatrixType des_mat_type;
+	typedef	typename std::conditional< std::is_same<SpMat, MatrixType >::value, Eigen::SimplicialLDLT<SpMat, Eigen::Upper>, Eigen::LDLT<MatrixType> >::type inv_mat_type;
+
 	protected:
 		const RNumericMatrix locations_;		//!< Design matrix pointer and dimensions.
 		VectorXr 	   observations_; 		//!< Observations data
@@ -45,9 +50,8 @@ class  RegressionData
 		VectorXr ic_; 					//!< Initial conditions
 
 		// Design matrix
-		MatrixXr covariates_;
-		UInt n_;
-		UInt p_;
+		MatrixType covariates_;
+		inv_mat_type WTW_inv;
 
 		// Areal data
 		MatrixXi incidenceMatrix_;
@@ -76,6 +80,7 @@ class  RegressionData
 		void setBaryLocations(SEXP RbaryLocations);
 		void setTimeLocations(SEXP Rtime_locations);
 		void setCovariates(SEXP Rcovariates);
+		void setCovariates(SEXP Rcovariates, SEXP RRandomEffect);
 		void setIncidenceMatrix(SEXP RincidenceMatrix);
 
 	public:
@@ -107,8 +112,7 @@ class  RegressionData
 			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch); // 10 sexp
 		
 		// space-mixed
-		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP Rorder, SEXP Rcovariates,
-			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual); // 15 sexp 			
+		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual); // 16 sexp 			
 
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
 			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative,SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch); // 17 sexp
@@ -169,7 +173,8 @@ class  RegressionData
 
 		// Covariates
 		//! A method returning a const pointer to the design matrix
-		const MatrixXr * getCovariates(void) const {return &covariates_;}
+		const MatrixType * getCovariates(void) const {return &covariates_;}
+		const inv_mat_type & getWTW_inv (void) const {return WTW_inv;}
 
 		// Bounday + Initial
 		//! A method returning the indexes of the nodes for which is needed to apply Dirichlet Conditions
@@ -205,7 +210,7 @@ class  RegressionData
 };
 
 
-class  RegressionDataElliptic:public RegressionData
+class  RegressionDataElliptic:public RegressionData<>
 {
 	private:
 		Diffusion<PDEParameterOptions::Constant> K_;
@@ -246,7 +251,7 @@ class  RegressionDataElliptic:public RegressionData
 		Real const getC() const {return c_;}
 };
 
-class RegressionDataEllipticSpaceVarying:public RegressionData
+class RegressionDataEllipticSpaceVarying:public RegressionData<>
 {
 	private:
 		Diffusion<PDEParameterOptions::SpaceVarying> K_;
@@ -364,9 +369,9 @@ class  RegressionDataGAM : public RegressionHandler
 
 // Type definitions for the GAMdata Structure
 /** GAMDataLaplace type definition */
-typedef RegressionDataGAM<RegressionData> GAMDataLaplace;
+typedef RegressionDataGAM <RegressionData<>> GAMDataLaplace;
 /** GAMDataElliptic type definition */
-typedef RegressionDataGAM<RegressionDataElliptic> GAMDataElliptic;
+typedef RegressionDataGAM <RegressionDataElliptic> GAMDataElliptic;
 /**  GAMDataEllipticSpaceVarying type definition */
 typedef RegressionDataGAM<RegressionDataEllipticSpaceVarying> GAMDataEllipticSpaceVarying;
 

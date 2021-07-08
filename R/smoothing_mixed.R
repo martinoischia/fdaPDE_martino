@@ -140,7 +140,8 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     DOF.matrix = as.matrix(DOF.matrix)
 
   # Checking random effect
-  random_effect = sort(random_effect)
+  if(is.null(random_effect)) stop ( " you called a mixed solver with no mixed effects covariates")
+  random_effect = sort(as.vector(random_effect))
   if (!is.null(random_effect)) {
     if (ncol(covariates) < length(random_effect))
       stop("'random_effect' has out of range index")
@@ -154,7 +155,7 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     }
   }
 
-  space_varying= checkSmoothingParameters_mixed (locations = locations, observations = observations, FEMbasis = FEMbasis, covariates = covariates, PDE_parameters = PDE_parameters, BC = BC, incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg, search = search, bary.locations = bary.locations, optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
+  space_varying= checkSmoothingParameters_mixed (locations = locations, observations = observations, FEMbasis = FEMbasis, covariates = covariates, PDE_parameters = PDE_parameters, BC = BC, incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg, search = search, bary.locations = bary.locations, optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE = FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, threshold_residual = threshold_residual)
 
   # if I have PDE non-sv case I need (constant) matrices as parameters
   if(!is.null(PDE_parameters) & space_varying==FALSE)
@@ -190,69 +191,11 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
       }
     }
   }
-  
-  # Start covariate conversion!
-  # keep it for later
-  orig_covariates = covariates
+
   num_units = dim(observations)[2] #number of statistical units, m
-  
-  ### Converting into big covariate X with both fixed effect and random effect
-  m = num_units #num of statistical units
-  p = length(random_effect) #num of random-effect coeff
-  q = dim(covariates)[2] #num of common-effect coeff
-  N = length(observations) #dim(covariates)[1] should be same
-  n = dim(observations)[1] # assumes to have same spatial locations across statistical units
 
   #transform matrix data to vector data
   observations<-as.vector(observations)
-
-  # convert into implementative design matrix (length: q - p + m*p)
-  matrixV = matrix(0, N, p*m)
-
-  if (p<q && p!=0) { #random-effect as subset
-    common_cov = as.matrix(covariates[,-random_effect])
-    random_cov = as.matrix(covariates[,random_effect])
-    for (i in 1:m) {
-      matrixV[((i-1)*n + 1):(i*n), ((i-1)*p + 1):(i*p)] = random_cov[((i-1)*n + 1):(i*n),]
-    }
-    matrixX= cbind(common_cov,matrixV)   
-    covariates = matrixX
-
-  } else if (p==q) { #random-effect as full set
-    random_cov = as.matrix(covariates)
-    for (i in 1:m) {
-    matrixV[((i-1)*n + 1):(i*n), ((i-1)*p + 1):(i*p)] = random_cov[((i-1)*n + 1):(i*n),]
-    }
-    matrixX= matrixV
-    covariates = matrixX
-
-  }
-  # else if (p==0) { #no random-effect (keep it as it is)
-  #   covariates = as.matrix(covariates)
-  # }
-  ### End of conversion
-
-
-
-  # convert into official design matrix (length: q + (m-1)*p) (to be used in hypothesis testing)
-  matrixV= matrix(0, N, p*(m-1))
-
-  if ((p<q && p!=0) || (p==q)) { #random-effect as subset OR random-effect as full set
-    random_cov = as.matrix(orig_covariates[,random_effect])
-    for (i in 1:(m-1)) {
-      matrixV[((i-1)*n + 1):(i*n), ((i-1)*p + 1):(i*p)] = random_cov[((i-1)*n + 1):(i*n),]
-    }
-
-    for (i in 1:n) {
-      matrixV[((m-1)*n + i), ] = -rep(random_cov[((m-1)*n + i),], (m-1))
-    }
-    official_covariates= cbind(orig_covariates,matrixV)
-  } else if (p==0) { #no random-effect
-    official_covariates = as.matrix(covariates)
-  }
-  ### End of conversion
-
-  ################## End checking parameters, sizes and conversion #############################
 
   if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters)){
 
@@ -260,11 +203,11 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     print('C++ Code Execution')
 
     bigsol = CPP_smooth.FEM.mixed(locations = locations, observations = observations, FEMbasis = FEMbasis,
-        covariates = covariates, ndim = ndim, mydim = mydim, BC = BC, num_units = num_units,
+        covariates = covariates, ndim = ndim, mydim = mydim, BC = BC, num_units = num_units, random_effect = random_effect,
         incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
         search = search, bary.locations = bary.locations,
         optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed,
-        DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual )
+        DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE = FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, threshold_residual = threshold_residual)
 
   } else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE){
 
@@ -289,8 +232,8 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     stop('still to be reimplemented')
   }
 
-  f = bigsol[[1]][1 : (m*nrow(FEMbasis$mesh$nodes)),]
-  g = bigsol[[1]][(m*nrow(FEMbasis$mesh$nodes)+1) : (2*m*nrow(FEMbasis$mesh$nodes)),]
+  f = bigsol[[1]][1 : (num_units*nrow(FEMbasis$mesh$nodes)),]
+  g = bigsol[[1]][(num_units*nrow(FEMbasis$mesh$nodes)+1) : (2*num_units*nrow(FEMbasis$mesh$nodes)),]
 
   dof = bigsol[[2]]
   GCV_ = bigsol[[3]]
@@ -298,49 +241,59 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
 
   
   # Start coefficient conversion
-  matrixcoeff = matrix(data=bigsol[[5]],nrow=ncol(covariates),ncol=length(lambda)) #implementative ver. (length: (q-p) + m*p)
-
-  if (p != 0) { #exists random-effect
+  p = length(random_effect) #num of random-effect coeff
+  q = dim(covariates)[2] #num of common-effect coeff
+  matrixcoeff = matrix(data=bigsol[[5]],nrow= q - p + num_units * p , ncol=length(lambda) ) #implementative ver. (length: (q-p) + m*p)
 
     # convert into official coeff (length: q + m*p)
-    if (p<q && p!=0) { #random-effect as subset
+    if (p<q ) 
+    { 
+      #random-effect as subset
       betaPrime <- matrixcoeff[1:(q-p),,drop=FALSE]
       b_iPrime <- matrixcoeff[-(1:(q-p)),,drop=FALSE] #split matrixcoeff into 2 matrices
-    } else if (p==q) { #random-effect as full set
+    } 
+    else if (p==q) 
+    { 
+      #random-effect as full set
       b_iPrime <- matrixcoeff
     }
     
-    #convert fixed-effect
+    #convert fixed-effect and random effect
     beta = matrix(0,nrow=q,ncol=length(lambda))
     indBeta = 1
     indBi = 1
     
-    for (i in 1:q) {
-      if (!is.element(i,random_effect)) { #beta as it is
+    for (i in 1:q) 
+    {
+      if (!is.element(i,random_effect)) 
+      { #beta as it is
         beta[i,] = betaPrime[indBeta,,drop=FALSE] 
         indBeta=indBeta+1
-      } else { #convert beta prime to original prime
-        temp = numeric(length(lambda))
-        for (j in 1:m) {
+      }
+      else
+      { #convert beta prime to original prime
+        temp = numeric(length(lambda)) # it initializes all to 0
+        for (j in 1:num_units) 
+        {
           temp =temp + b_iPrime[indBi+(j-1)*p,]
         }
-        beta[i,]=temp/m
+        beta[i,]=temp/num_units
         indBi=indBi+1
       }
     }
-  
-    #convert random-effect
-    b_i = matrix(0,nrow=m*p,ncol=length(lambda))
+
+    b_i = matrix(0,nrow=num_units*p,ncol=length(lambda))
     indRanEff=1 #this index will be cycled according to random_effect elements
     
-    for (i in 1:(m*p)) {
+    for (i in 1:(num_units*p))
+    {
       b_i[i,] = b_iPrime[i,]-beta[random_effect[ifelse(indRanEff!=0,indRanEff, p)],]
       indRanEff = (indRanEff+1)%%p
     }
 
     #change the name of the rows
     rname=c()
-    for (i in 1:m) {
+    for (i in 1:num_units) {
       temp=paste('b_', as.character(i),sep="")
       for (j in 1:p) {
         temp2=paste(temp, as.character(j),sep="")
@@ -349,11 +302,6 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     }
 
     rownames(b_i) = rname
-    
-  } else { #if p==0, no random-effect
-    beta = matrixcoeff
-    b_i = NULL
-  }
   # End of conversion
     
 

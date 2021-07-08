@@ -1,15 +1,12 @@
-CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis,
-        covariates, ndim, mydim, BC, num_units,
-        incidence_matrix, areal.data.avg,
-        search, bary.locations,
-        optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed,
-        DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
+CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis, covariates, ndim, mydim, BC, num_units, random_effect, incidence_matrix, areal.data.avg, search, bary.locations, optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
 {
   # Indexes in C++ starts from 0, in R from 1, opportune transformation
 
   FEMbasis$mesh$triangles = FEMbasis$mesh$triangles - 1
   FEMbasis$mesh$edges = FEMbasis$mesh$edges - 1
   FEMbasis$mesh$neighbors[FEMbasis$mesh$neighbors != -1] = FEMbasis$mesh$neighbors[FEMbasis$mesh$neighbors != -1] - 1
+
+  random_effect = random_effect - 1
 
   if(is.null(covariates))
   {
@@ -59,6 +56,7 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis,
   locations <- as.matrix(locations)
   storage.mode(locations) <- "double"
   storage.mode(observations) <- "double"
+  storage.mode(random_effect) <- "integer"
   storage.mode(FEMbasis$mesh$nodes) <- "double"
   storage.mode(FEMbasis$mesh$triangles) <- "integer"
   storage.mode(FEMbasis$mesh$edges) <- "integer"
@@ -91,7 +89,6 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis,
   storage.mode(threshold_residual) <- "double"
 
   ## Call C++ function
-  bigsol <- .Call("regression_Laplace_mixed", locations, bary.locations, observations, num_units, FEMbasis$mesh, FEMbasis$order,
-                  mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, search, optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, PACKAGE = "fdaPDE", FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
+  bigsol <- .Call("regression_Laplace_mixed", locations, bary.locations, observations, num_units, random_effect, FEMbasis$mesh, FEMbasis$order, mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, search, optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, PACKAGE = "fdaPDE", FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
   return(bigsol)
 }
