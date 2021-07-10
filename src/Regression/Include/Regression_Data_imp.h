@@ -77,8 +77,7 @@ RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations
 
 
 template <typename MatrixType>
-RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
-	SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch) :
+RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch) :
 		locations_(Rlocations)
 {
 	flag_SpaceTime_ = true;
@@ -289,9 +288,14 @@ void RegressionData <SpMat>::setCovariates(SEXP Rcovariates, SEXP RRandomEffect)
 	}
 
 	covariates_.makeCompressed();
+	Rprintf( "Non zeros of design matrix X: %i\n" ,covariates_.nonZeros());
 	SpMat tmp ( covariates_.cols() , covariates_.cols() );
 	tmp.selfadjointView<Eigen::Upper>().rankUpdate(covariates_.transpose());
 	WTW_inv.compute( tmp );
+	Rprintf( "Non zeros of L: %i\n" ,static_cast<SpMat>(WTW_inv.matrixL()).nonZeros());
+	Rprintf( "Non zeros of U: %i\n" ,static_cast<SpMat>(WTW_inv.matrixU()).nonZeros());
+	Rprintf( "Size of P (should be like the dimension of WTW ? = %i): %i\n" , static_cast<SpMat>(WTW_inv.matrixU()).cols() , WTW_inv.permutationP().size() );
+
 }
 
 template <typename MatrixType>
