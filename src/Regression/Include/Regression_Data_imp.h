@@ -47,7 +47,7 @@ RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations
 
 // mixed
 template <typename MatrixType>
-RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual):
+RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual, SEXP verbose, SEXP dummy):
 			locations_(Rlocations)
 {
 	flag_SpaceTime_=false;
@@ -62,6 +62,7 @@ RegressionData <MatrixType>::RegressionData(SEXP Rlocations, SEXP RbaryLocations
 	order_ =  INTEGER(Rorder)[0];
 	search_ =  INTEGER(Rsearch)[0];
 	flag_iterative_ = INTEGER(RFLAG_ITERATIVE)[0];
+	verbose_ = INTEGER(verbose)[0];
     max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
     threshold_ =  REAL(Rthreshold)[0];
 	threshold_residual = REAL(Rthreshold_residual)[0];
@@ -225,77 +226,73 @@ void RegressionData <MatrixType>::setCovariates(SEXP Rcovariates)
 			}
 		}
 	}
-
-	WTW_inv.compute ( covariates_.transpose() * covariates_ );
+	MatrixXr tmp ( covariates_.cols() , covariates_.cols() );
+	tmp.selfadjointView<Eigen::Upper>().rankUpdate(covariates_.transpose());
+	dec_mat_type WTW_;
+	WTW_.compute( tmp.selfadjointView<Eigen::Upper>() );
+	tmp.setIdentity();
+	WTW_inv = WTW_.solve(tmp);
 }
 
 template<>
 void RegressionData <SpMat>::setCovariates(SEXP Rcovariates, SEXP RRandomEffect)
 {
-	int N_ = INTEGER(Rf_getAttrib(Rcovariates, R_DimSymbol))[0];//N
-	int q_ = INTEGER(Rf_getAttrib(Rcovariates, R_DimSymbol))[1];//q
+	int N_ = INTEGER(Rf_getAttrib(Rcovariates, R_DimSymbol))[0];
+	int q_ = INTEGER(Rf_getAttrib(Rcovariates, R_DimSymbol))[1];
 	int p_ = Rf_length(RRandomEffect);
 	int nlocations = N_ / num_units_;
 	
 	covariates_.resize( N_, num_units_ * p_ + q_ - p_ );
 	std::vector<coeff> tripletAll;
 	tripletAll.reserve( q_ * N_ );
-	std::vector<size_t> complement; 
-	for ( size_t i = 0 , index = 0 ; i < q_ ; ++i ) // I exploit the fact that the random effect vector has already been sorted
+	std::vector<size_t> complement;
+	for ( size_t i = 0 , index = 0 ; i != q_ ; ++i ) // I exploit the fact that the random effect vector has already been sorted
 	{
 		if ( i != INTEGER(RRandomEffect)[index] ) complement.push_back( i );
-		else ++index;
+		else if (index != p_ -1) ++index;
 	}
 
 	for ( size_t j = 0; j < complement.size(); ++j)
 	{
+		int k = 0;
 		for (size_t i = 0; i < N_; ++i)
 		{
-			tripletAll.push_back(coeff(i, j, REAL(Rcovariates)[ i + N_ * complement[j] ] ));
+			if(observations_na_.size()>k && i==observations_na_[k]) ++k;
+			else tripletAll.push_back(coeff(i, j, REAL(Rcovariates)[ i + N_ * complement[j] ] ));
 		}
 	}
 
 	for (size_t j = 0; j < p_ ; j++)
 	{
+		int k = 0;
 		for (size_t i = 0; i < N_; i++)
 		{
-			tripletAll.push_back(coeff(i, q_ - p_ + j + p_ * (i / nlocations) , REAL(Rcovariates)[ i + N_ * (INTEGER(RRandomEffect)[j]) ] ));
+			if(observations_na_.size()>k && i==observations_na_[k]) ++k;
+			else tripletAll.push_back(coeff(i, q_ - p_ + j + p_ * (i / nlocations) , REAL(Rcovariates)[ i + N_ * (INTEGER(RRandomEffect)[j]) ] ));
 		}
 	}
-	// Rprintf( (++c[0], c));
-	// Rprintf( "N = %i, num units = %i\n", N_, num_units_);
-	// for (const auto & trip : tripletAll)
-	// {
-	
-	// 	Rprintf( "%i ", trip.row());
-	// 	Rprintf("%i ", trip.col());
-	// 	Rprintf("%f\n", trip.value());
-	
-
-	// }
 	covariates_.setFromTriplets(tripletAll.begin(),tripletAll.end());
 
-	for(size_t i=0, k=0; i<N_; ++i)
-	{
-		for(size_t j=0; j<covariates_.cols() ; ++j)
-		{
-			if(observations_na_.size()>k && i==observations_na_[k])
-			{
-				covariates_.coeffRef(i,j)=0;
-				++k;
-			}
-		}
-	}
-
 	covariates_.makeCompressed();
-	Rprintf( "Non zeros of design matrix X: %i\n" ,covariates_.nonZeros());
+	if (verbose_) Rprintf( "Non zeros of design matrix X: %i\n" ,covariates_.nonZeros());
 	SpMat tmp ( covariates_.cols() , covariates_.cols() );
 	tmp.selfadjointView<Eigen::Upper>().rankUpdate(covariates_.transpose());
-	WTW_inv.compute( tmp );
-	Rprintf( "Non zeros of L: %i\n" ,static_cast<SpMat>(WTW_inv.matrixL()).nonZeros());
-	Rprintf( "Non zeros of U: %i\n" ,static_cast<SpMat>(WTW_inv.matrixU()).nonZeros());
-	Rprintf( "Size of P (should be like the dimension of WTW ? = %i): %i\n" , static_cast<SpMat>(WTW_inv.matrixU()).cols() , WTW_inv.permutationP().size() );
-
+	dec_mat_type WTW_;
+	WTW_.compute( tmp.selfadjointView<Eigen::Upper>() );
+	if (verbose_) Rprintf( "Non zeros of L: %i\n" ,static_cast<SpMat>(WTW_.matrixL()).nonZeros());
+	if (verbose_) Rprintf( "Non zeros of U: %i\n" ,static_cast<SpMat>(WTW_.matrixU()).nonZeros());
+	if (verbose_) Rprintf( "Size of P (should be like the dimension of WTW ? = %i): %i\n" , static_cast<SpMat>(WTW_.matrixU()).cols() , WTW_.permutationP().size() );
+	tmp.setIdentity();
+	WTW_inv = WTW_.solve(tmp);
+	for (size_t i = 0; i < WTW_inv.rows() ; i++)
+	{
+		for (size_t j = 0; j < WTW_inv.cols(); j++)
+		{
+			Rprintf("%g ", WTW_inv(i, j));
+		}
+		Rprintf("\n");
+	}
+	Rprintf("end of inv matrix\n");
 }
 
 template <typename MatrixType>

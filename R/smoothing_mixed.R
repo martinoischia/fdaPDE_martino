@@ -6,8 +6,11 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
                            search = "tree", bary.locations = NULL, lambda = NULL,
                            lambda.selection.criterion = "grid", DOF.evaluation = NULL, lambda.selection.lossfunction = NULL,
                            DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
-                           nrealizations = 100, DOF.matrix=NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05 )
+                           nrealizations = 100, DOF.matrix=NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05,
+                           verbose = FALSE )
 {
+  if(!is.logical(verbose))
+    stop("'verbose' is not logical")
   if(class(FEMbasis$mesh) == "mesh.2D"){
     ndim = 2
     mydim = 2
@@ -207,7 +210,7 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
         incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
         search = search, bary.locations = bary.locations,
         optim = optim, lambda = lambda, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed,
-        DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE = FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, threshold_residual = threshold_residual)
+        DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, FLAG_ITERATIVE = FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, threshold_residual = threshold_residual, verbose = verbose)
 
   } else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE){
 

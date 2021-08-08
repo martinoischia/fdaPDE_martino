@@ -61,7 +61,6 @@ class MixedFERegressionBase
 		MatrixXr	Q_; 		//!< Identity - H, projects onto the orthogonal subspace
 		VectorXr 	A_; 		//!< A_.asDiagonal() areal matrix
 		MatrixXr 	U_;		//!< psi^T * W or psi^T * A * W padded with zeros, needed for Woodbury decomposition
-		MatrixXr 	V_;  		//!< W^T*psi, if pointwise data is U^T, needed for Woodbury decomposition
 		MatrixXr 	barycenters_; 	//!< barycenter information
 		VectorXi 	element_ids_; 	//!< elements id information
 
@@ -70,7 +69,7 @@ class MixedFERegressionBase
 		//std::unique_ptr<Eigen::PartialPivLU<MatrixXr>>  matrixNoCovdec_{new Eigen::PartialPivLU<MatrixXr>}; //!< Stores the factorization of matrixNoCov_
 		Eigen::PartialPivLU<MatrixXr> Gdec_;	//!< Stores factorization of G =  C + [V * matrixNoCov^-1 * U]
 
-		const typename InputHandler::inv_mat_type & WTW_ = regressionData_.getWTW_inv();	//!< Saves for later use the factorization of W^T * W
+		const MatrixXr& WTW_inv = regressionData_.getWTW_inv();	//!< Saves for later use the factorization of W^T * W
 		bool isWTWfactorized_ = false;
 		bool isRcomputed_ = false;
 		Eigen::SparseLU<SpMat> R0dec_; 		//!< Stores the factorization of R0_
