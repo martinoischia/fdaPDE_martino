@@ -200,7 +200,7 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
   #transform matrix data to vector data
   observations<-as.vector(observations)
 
-  if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters)){
+  if((class(FEMbasis$mesh) == 'mesh.2D' | class(FEMbasis$mesh) == 'mesh.2.5D' ) & is.null(PDE_parameters)){
 
     bigsol = NULL
     print('C++ Code Execution')
@@ -222,14 +222,7 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
     bigsol = NULL
     stop('still to be reimplemented')
   }
-  else if(class(FEMbasis$mesh) == 'mesh.2.5D'){
-
-    bigsol = NULL
-    stop('still to be reimplemented')
-    # if(!is.null(locations))
-    #   stop("The option locations!=NULL for manifold domains is currently not implemented")
-  
-  }else if(class(FEMbasis$mesh) == 'mesh.3D'){
+  else if(class(FEMbasis$mesh) == 'mesh.3D'){
 
     bigsol = NULL
     stop('still to be reimplemented')

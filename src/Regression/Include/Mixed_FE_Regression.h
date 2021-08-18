@@ -53,14 +53,13 @@ class MixedFERegressionBase
 		SpMat 		R1_lambda;
 		SpMat 		psi_;  		//!< Psi matrix of the model
 		SpMat       psi_mini;   //!< Psi only space version
-		SpMat 		psi_t_;  	//!< Psi ^T matrix of the model
 		SpMat 		Ptk_; 		//!< kron(Pt,IN) (separable version)
 		SpMat 		LR0k_; 		//!< kron(L,R0) (parabolic version)
 		MatrixXr 	R_; 		//!< R1 ^T * R0^-1 * R1
-		MatrixXr 	H_; 		//!< The hat matrix of the regression
-		MatrixXr	Q_; 		//!< Identity - H, projects onto the orthogonal subspace
+		// MatrixXr 	H_; 		//!< The hat matrix of the regression
+		// MatrixXr	Q_; 		//!< Identity - H, projects onto the orthogonal subspace
 		VectorXr 	A_; 		//!< A_.asDiagonal() areal matrix
-		MatrixXr 	U_;		//!< psi^T * W or psi^T * A * W padded with zeros, needed for Woodbury decomposition
+		typename InputHandler::U_mat_type U_;		//!< psi^T * W or psi^T * A * W padded with zeros, needed for Woodbury decomposition
 		MatrixXr 	barycenters_; 	//!< barycenter information
 		VectorXi 	element_ids_; 	//!< elements id information
 
@@ -84,7 +83,6 @@ class MixedFERegressionBase
 
 		// members for the iterative method
         MatrixXr _solution_k_;       //!< A Eigen::MatrixXr: Stores the solution for each time instant (iterative method)
-        VectorXr _solution_f_old_;  //!< A Eigen::VectorXr: Stores the old system solution (iterative method)
         VectorXr _rightHandSide_k_; //!< A Eigen::VectorXr: Stores the update system right hand side (iterative method)
 
         //Flag to avoid the computation of R0, R1, Psi_ onece already performed
@@ -113,14 +111,12 @@ class MixedFERegressionBase
 	 	//! A member function which builds the A vector containing the areas of the regions in case of areal data
 	    template<UInt ORDER, UInt mydim, UInt ndim>
 		void setA(const MeshHandler<ORDER, mydim, ndim> & mesh_);
-		//! A member function which sets psi_t_
-		void setpsi_t_(void);
 	    //! A member function which builds DMat, to be changed in apply for the temporal case
 		void setDMat(void);
 		//! A member function which builds the Q matrix
-		void setQ(void);
+		MatrixXr compute_Q (void) const;
 		//! A member function which builds the H matrix
-		void setH(void);
+		MatrixXr compute_H(void) const;
 		//! A member function returning the system right hand data
 		void getRightHandData(VectorXr& rightHandData);
 		//! A method which builds all the matrices needed for assembling matrixNoCov_
@@ -131,12 +127,10 @@ class MixedFERegressionBase
 		void computeDegreesOfFreedomExact(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
         //! Exact GCV: iterative method
 		void computeDOFExact_iterative(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
-
-
+		void build_psi_mini(UInt);
 		//! A method computing dofs in case of stochastic GCV, it is called by computeDegreesOfFreedom
 		void computeDegreesOfFreedomStochastic(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
 		//! Stochastic GCV: iterative method
-        void computeDOFStochastic_iterative_approx(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
         void computeDOFStochastic_iterative(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
 		//! A method computing GCV from the dofs
 		void computeGeneralizedCrossValidation(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
@@ -171,7 +165,6 @@ class MixedFERegressionBase
         //!A method that computes and return the current value of the functional J. It is divided in parametric and non parametric part.
         Real compute_J(UInt& lambdaS_index, UInt& lambdaT_index);
         //!  A methdd that update the system rhs for each time instant (iterative method)
-        void update_rhs(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
 	public:
 
 		//!A Constructor.
@@ -219,7 +212,7 @@ class MixedFERegressionBase
 		//! A method returning the psi matrix
 		const SpMat * getpsi_(void) const {return &this->psi_;}
 		//! A method returning the psi matrix transposed
-		const SpMat * getpsi_t_(void) const {return &this->psi_t_;}
+		const SpMat * getpsi_t_(void) const {return (new SpMat(psi_.transpose()));}
 		//! A method returning the R0 matrix
 		const SpMat * getR0_(void) const {return &this->R0_;}
 		//! A method returning the R1 matrix
@@ -227,9 +220,9 @@ class MixedFERegressionBase
 		//! A method returning the DMat matrix, da implementare la DMat
 		const SpMat * getDMat_(void) const {return &this->DMat_;}
 		//! A method returning the Q_ matrix -> da impementare la Q
-		const MatrixXr *	getQ_(void) const {return &this->Q_;}
+		MatrixXr *	getQ_(void) const {return (new MatrixXr (compute_Q()));}
 		//! A method returning the H_ matrix da implementare la H
-		const MatrixXr *	getH_(void) const {return &this->H_;}
+		const MatrixXr *	getH_(void) const {return (new MatrixXr (compute_H()));}
 		//! A method returning the A_ matrix
 		const VectorXr *	getA_(void) const {return &this->A_;}
 		//! A method returning the rhs
@@ -261,6 +254,23 @@ class MixedFERegressionBase
 		MatrixXv apply(void);
         MatrixXv apply_iterative(void);
 		MatrixXr apply_to_b(const MatrixXr & b);
+		static SpMat build_identity ( size_t rows, size_t cols ) {
+			size_t min = std::min( rows, cols );
+			std::vector<coeff> tripletAll;
+			tripletAll.reserve(min);
+			for (size_t i =0; i < min; ++i)
+			{
+				tripletAll.push_back(coeff(i, i, 1.));
+			}
+			SpMat res(rows,cols);
+			res.setFromTriplets(tripletAll.begin(),tripletAll.end());
+			res.makeCompressed();
+			return res;
+		}
+
+		VectorXr LeftMultiplybyPsi(const VectorXr & rhs);
+		MatrixXr LeftMultiplybyPsiTranspose(const MatrixXr & rhs);
+		SpMat LeftMultiplybyPsiTranspose(const SpMat & rhs);
 };
 
 //----------------------------------------------------------------------------//

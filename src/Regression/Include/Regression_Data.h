@@ -15,7 +15,7 @@ template <typename MatrixType = MatrixXr>
 class  RegressionData
 {
 	public:
-	typedef MatrixType des_mat_type;
+	typedef MatrixType des_mat_type, U_mat_type;
 	typedef	typename std::conditional< std::is_same<SpMat, MatrixType >::value, Eigen::SimplicialLDLT<SpMat, Eigen::Upper>, Eigen::LDLT<MatrixType> >::type dec_mat_type;
 	bool verbose_ = false;
 
@@ -31,7 +31,7 @@ class  RegressionData
 
 	private:
 		std::vector<UInt> observations_indices_;
-		std::vector<UInt> observations_na_;
+		std::vector<std::vector<UInt>> observations_na_;
 
 		std::vector<Real> time_locations_;		//!< Vector of the time locations
 
@@ -76,13 +76,13 @@ class  RegressionData
 		UInt const getNumberofSpaceObservationsMixed() const {return observations_.size()/num_units_;}
 
 		// -- SETTERS --
-		void setObservations(SEXP Robservations);
-		void setObservationsTime(SEXP Robservations);
-		void setBaryLocations(SEXP RbaryLocations);
-		void setTimeLocations(SEXP Rtime_locations);
-		void setCovariates(SEXP Rcovariates);
-		void setCovariates(SEXP Rcovariates, SEXP RRandomEffect);
-		void setIncidenceMatrix(SEXP RincidenceMatrix);
+		inline void setObservations(SEXP Robservations);
+		inline void setObservationsTime(SEXP Robservations);
+		inline void setBaryLocations(SEXP RbaryLocations);
+		inline void setTimeLocations(SEXP Rtime_locations);
+		inline void setCovariates(SEXP Rcovariates);
+		inline void setCovariates(SEXP Rcovariates, SEXP RRandomEffect);
+		inline void setIncidenceMatrix(SEXP RincidenceMatrix);
 
 	public:
 		// -- CONSTRUCTORS --
@@ -109,23 +109,23 @@ class  RegressionData
 
 
 		*/
-		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
+		inline explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
 			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch); // 10 sexp
 		
 		// space-mixed
-		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual, SEXP verbose, SEXP dummy); // 18 sexp 			
+		inline explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rorder, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmax_num_iteration, SEXP Rthreshold_residual, SEXP verbose, SEXP dummy); // 18 sexp 			
 
-		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
+		inline explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP Rcovariates,
 			SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative,SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch); // 17 sexp
 
-		explicit RegressionData(Real* locations, UInt n_locations, UInt ndim, VectorXr & observations, UInt order, MatrixXr & covariates,
+		inline explicit RegressionData(Real* locations, UInt n_locations, UInt ndim, VectorXr & observations, UInt order, MatrixXr & covariates,
 			 VectorXr & WeightsMatrix, std::vector<UInt> & bc_indices, std::vector<Real> & bc_values,  MatrixXi & incidenceMatrix, bool arealDataAvg, UInt search);
 
 		// -- PRINTERS --
-		void printObservations(std::ostream & out) const;
-		void printCovariates(std::ostream & out) const;
-		void printLocations(std::ostream & out) const;
-		void printIncidenceMatrix(std::ostream & out) const;
+		inline void printObservations(std::ostream & out) const;
+		inline void printCovariates(std::ostream & out) const;
+		inline void printLocations(std::ostream & out) const;
+		inline void printIncidenceMatrix(std::ostream & out) const;
 
 		// -- GETTERS --
 		// Observations [[GM passng to const pointers??]]
@@ -152,7 +152,7 @@ class  RegressionData
 
 		UInt getNumberofTimeObservations(void) const {return time_locations_.size();}
 		const std::vector<UInt> * getObservationsIndices(void) const {return &observations_indices_;}
-		const std::vector<UInt> * getObservationsNA(void) const {return &observations_na_;}
+		const std::vector<std::vector<UInt>> * getObservationsNA(void) const {return &observations_na_;}
         //! A method returning the maximum iteration for the iterative method
         const UInt get_maxiter() const {return max_num_iterations_;}
         //! A method returning the treshold (iterative methos)
@@ -239,11 +239,11 @@ class  RegressionDataElliptic:public RegressionData<>
 		        \param Rnrealizations the number of random points used in the stochastic computation of the dofs
 		        \param Rsearch an R-integer to decide the search algorithm type (tree or naive or walking search algorithm).
 		*/
-		explicit RegressionDataElliptic(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataElliptic(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
 			 SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,
 			 SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch);
 
-		explicit RegressionDataElliptic(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataElliptic(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
 			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,
 			SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch);
 
@@ -283,11 +283,11 @@ class RegressionDataEllipticSpaceVarying:public RegressionData<>
 	        	\param Rnrealizations the number of random points used in the stochastic computation of the dofs
 	        	\param Rsearch an R-integer to decide the search algorithm type (tree or naive or walking search algorithm).
 		*/
-		explicit RegressionDataEllipticSpaceVarying(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataEllipticSpaceVarying(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
 			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,
 			SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch);
 
-		explicit RegressionDataEllipticSpaceVarying(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataEllipticSpaceVarying(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
 			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
 			SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Ric, SEXP Rsearch);
 
@@ -340,17 +340,17 @@ class  RegressionDataGAM : public RegressionHandler
 		*/
 
 		//Laplace
-		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
 			SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch,
 			SEXP Rmax_num_iteration, SEXP Rthreshold);
 
 		// PDE
-		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
 			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,
 			SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP Rmax_num_iteration, SEXP Rthreshold);
 
 		// PDE SpaceVarying
-		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
+		inline explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder,
 			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,
 			SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP Rmax_num_iteration, SEXP Rthreshold);
 

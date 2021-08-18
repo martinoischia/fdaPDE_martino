@@ -65,9 +65,40 @@ class Carrier: public Extensions...
 
 
         public:
+                virtual ~Carrier(){delete psi_tp; delete Qp;}
                 // CONSTRUCTORS
                 //! Default constructor
                 Carrier() = default;
+                Carrier & operator =(Carrier const &) = delete;
+                Carrier (Carrier const &) = delete;
+                Carrier (Carrier && rhs):
+                        Extensions( std::move ( static_cast<Extensions> (rhs)))...,
+                        opt_data(rhs.opt_data), 
+                        model (rhs.model),
+                        locations_are_nodes(rhs.locations_are_nodes),
+                        has_covariates(rhs.has_covariates),
+                        areal_data(rhs.areal_data),
+                        boundary_conditions(rhs.boundary_conditions ),
+                        forced_data(rhs.forced_data),
+                        temporal_data(rhs.temporal_data),
+                        n_obs(rhs.n_obs),
+                        n_nodes(rhs.n_nodes),
+                        obs_indicesp (rhs.obs_indicesp),
+                        Wp(rhs.Wp),
+                        Hp(rhs.Hp),
+                        Qp(rhs.Qp),
+                        DMatp(rhs.DMatp),
+                        R1p(rhs.R1p),
+                        R0p(rhs.R0p),
+                        psip(rhs.psip),
+                        psi_tp(rhs.psi_tp),
+                        rhsp(rhs.rhsp),
+                        bc_valuesp(rhs.bc_valuesp),
+                        bc_indicesp(rhs.bc_indicesp)
+                        {
+                                rhs.Qp = nullptr;
+                                rhs.psi_tp = nullptr;
+                        }
 
                 //! Constructor taking object Extensions and initializing with it the new class [used for minimal inheritance]
                 /*!

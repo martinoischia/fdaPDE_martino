@@ -181,11 +181,13 @@ void RegressionData <MatrixType>::setObservationsTime(SEXP Robservations)
 	UInt n_obs_ = Rf_length(Robservations);
 	observations_.resize(n_obs_);
 	observations_indices_.reserve(n_obs_);
+	if(isSpaceTime()) observations_na_.resize(time_locations_.size());
+	else if (isMixed()) observations_na_.resize(num_units_);
 
 	UInt count = 0;
 	locations_by_nodes_ = (locations_.nrows() == 0 && nRegions_ == 0);
 
-	for(auto i=0;i<n_obs_;++i)
+	for(int i=0;i<n_obs_;++i)
 	{
 		if(!ISNA(REAL(Robservations)[i]))
 		{
@@ -195,11 +197,20 @@ void RegressionData <MatrixType>::setObservationsTime(SEXP Robservations)
 		else
 		{
 			observations_(i) = 0.0;
-			observations_na_.push_back(i);
+			observations_na_[i/getNumberofSpaceObservations()].push_back(i%getNumberofSpaceObservations());
 		}
 	}
-	//std::cout<<"Observations #"<<observations_.size()<<std::endl<<observations_<<std::endl;
-	//for(auto i=0;i<observations_indices_.size();++i)	std::cout<<observations_indices_[i]<<std::endl;
+
+	bool empty = true;
+	for (int i =0; i < observations_na_.size(); ++i)
+	{
+		if (!observations_na_[i].empty()) {empty = false; break;}
+	}
+	if ( empty )
+	{
+		observations_na_.clear();
+		observations_na_.shrink_to_fit();
+	}
 }
 
 template <typename MatrixType>
@@ -211,21 +222,26 @@ void RegressionData <MatrixType>::setCovariates(SEXP Rcovariates)
 
 	covariates_.resize(n_, p_);
 
-	for(size_t i=0; i<n_; ++i)
+	for(size_t j=0; j<p_ ; ++j)
 	{
-		for(size_t j=0; j<p_ ; ++j)
+		for(size_t i=0; i<n_; ++i)
 		{
-			if(observations_na_.size()>k && i==observations_na_[k])
-			{
-				covariates_(i,j)=0;
-				++k;
-			}
-			else
-			{
 				covariates_(i,j)=REAL(Rcovariates)[i+ n_*j];
+	
+		}
+	}
+
+	for(size_t j=0; j<covariates_.cols() ; ++j)
+	{
+		for (size_t k = 0; k< observations_na_.size(); ++k)
+		{
+			for (size_t i = 0; i < observations_na_[k].size(); i++)
+			{
+				covariates_( observations_na_[k][i]+getNumberofSpaceObservations()*k, j)=0;
 			}
 		}
 	}
+
 	MatrixXr tmp ( covariates_.cols() , covariates_.cols() );
 	tmp.selfadjointView<Eigen::Upper>().rankUpdate(covariates_.transpose());
 	dec_mat_type WTW_;
@@ -235,7 +251,7 @@ void RegressionData <MatrixType>::setCovariates(SEXP Rcovariates)
 }
 
 template<>
-void RegressionData <SpMat>::setCovariates(SEXP Rcovariates, SEXP RRandomEffect)
+inline void RegressionData <SpMat>::setCovariates(SEXP Rcovariates, SEXP RRandomEffect)
 {
 	int N_ = INTEGER(Rf_getAttrib(Rcovariates, R_DimSymbol))[0];
 	int q_ = INTEGER(Rf_getAttrib(Rcovariates, R_DimSymbol))[1];
@@ -254,25 +270,33 @@ void RegressionData <SpMat>::setCovariates(SEXP Rcovariates, SEXP RRandomEffect)
 
 	for ( size_t j = 0; j < complement.size(); ++j)
 	{
-		int k = 0;
 		for (size_t i = 0; i < N_; ++i)
 		{
-			if(observations_na_.size()>k && i==observations_na_[k]) ++k;
-			else tripletAll.push_back(coeff(i, j, REAL(Rcovariates)[ i + N_ * complement[j] ] ));
+			tripletAll.push_back(coeff(i, j, REAL(Rcovariates)[ i + N_ * complement[j] ] ));
 		}
 	}
 
 	for (size_t j = 0; j < p_ ; j++)
 	{
-		int k = 0;
 		for (size_t i = 0; i < N_; i++)
 		{
-			if(observations_na_.size()>k && i==observations_na_[k]) ++k;
-			else tripletAll.push_back(coeff(i, q_ - p_ + j + p_ * (i / nlocations) , REAL(Rcovariates)[ i + N_ * (INTEGER(RRandomEffect)[j]) ] ));
+			tripletAll.push_back(coeff(i, q_ - p_ + j + p_ * (i / nlocations) , REAL(Rcovariates)[ i + N_ * (INTEGER(RRandomEffect)[j]) ] ));
 		}
 	}
 	covariates_.setFromTriplets(tripletAll.begin(),tripletAll.end());
 
+	for(size_t j=0; j<covariates_.cols() ; ++j)
+	{
+		for (size_t k = 0; k< observations_na_.size(); ++k)
+		{
+			for (size_t i = 0; i < observations_na_[k].size(); i++)
+			{
+				if( covariates_.coeff( observations_na_[k][i]+getNumberofSpaceObservations()*k, j)!=0)
+					covariates_.coeffRef( observations_na_[k][i]+getNumberofSpaceObservations()*k, j)=0;
+			}
+		}
+	}
+	covariates_.prune(0.);
 	covariates_.makeCompressed();
 	if (verbose_) Rprintf( "Non zeros of design matrix X: %i\n" ,covariates_.nonZeros());
 	SpMat tmp ( covariates_.cols() , covariates_.cols() );
@@ -284,15 +308,6 @@ void RegressionData <SpMat>::setCovariates(SEXP Rcovariates, SEXP RRandomEffect)
 	if (verbose_) Rprintf( "Size of P (should be like the dimension of WTW ? = %i): %i\n" , static_cast<SpMat>(WTW_.matrixU()).cols() , WTW_.permutationP().size() );
 	tmp.setIdentity();
 	WTW_inv = WTW_.solve(tmp);
-	for (size_t i = 0; i < WTW_inv.rows() ; i++)
-	{
-		for (size_t j = 0; j < WTW_inv.cols(); j++)
-		{
-			Rprintf("%g ", WTW_inv(i, j));
-		}
-		Rprintf("\n");
-	}
-	Rprintf("end of inv matrix\n");
 }
 
 template <typename MatrixType>

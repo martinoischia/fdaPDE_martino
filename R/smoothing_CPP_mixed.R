@@ -20,7 +20,7 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis, covariates, n
 
   if(is.null(locations))
   {
-    locations<-matrix(nrow = 0, ncol = 2)
+    locations<-matrix(nrow = 0, ncol = ndim)
   }
 
   if(is.null(incidence_matrix))

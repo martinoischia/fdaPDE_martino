@@ -2,7 +2,6 @@
 #define __REGRESSION_SKELETON_MIXED_H__
 
 #include "../../FdaPDE.h"
-#include "../../Lambda_Optimization/Include/Carrier.h"
 #include "../../Lambda_Optimization/Include/Grid_Evaluator.h"
 #include "../../Lambda_Optimization/Include/Lambda_Optimizer.h"
 #include "../../Lambda_Optimization/Include/Newton.h"
