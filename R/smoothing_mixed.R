@@ -230,12 +230,10 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
 
   f = bigsol[[1]][1 : (num_units*nrow(FEMbasis$mesh$nodes)),]
   g = bigsol[[1]][(num_units*nrow(FEMbasis$mesh$nodes)+1) : (2*num_units*nrow(FEMbasis$mesh$nodes)),]
-
   dof = bigsol[[2]]
   GCV_ = bigsol[[3]]
   bestlambda = bigsol[[4]]+1
 
-  
   # Start coefficient conversion
   p = length(random_effect) #num of random-effect coeff
   q = dim(covariates)[2] #num of common-effect coeff
@@ -277,7 +275,6 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
         indBi=indBi+1
       }
     }
-
     b_i = matrix(0,nrow=num_units*p,ncol=length(lambda))
     indRanEff=1 #this index will be cycled according to random_effect elements
     
@@ -311,22 +308,26 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
   node_right_child = bigsol[[9]][,3],
   node_box= bigsol[[10]])
 
-
   # Reconstruct FEMbasis with tree mesh
   mesh.class= class(FEMbasis$mesh)
   if (is.null(FEMbasis$mesh$treelev)) { #if doesn't exist the tree information
+    print(" ggggggggttttttttaaaaaaaaa")
     FEMbasis$mesh = append(FEMbasis$mesh, tree_mesh)
   } #if already exist the tree information, don't append
   class(FEMbasis$mesh) = mesh.class  
 
 
   # Make Functional objects
+  print(" ggggggggttttttttttbbbbbbbbbb")
   fit.FEM.mixed  = FEM.mixed(f, num_units, FEMbasis)
+  print(" ggggggggttttttttttccccccccc")
   PDEmisfit.FEM.mixed = FEM.mixed(g, num_units, FEMbasis)
 
 
   # Save information of Barycenter
   if (is.null(bary.locations)) {
+print(" ggggggggtttttdassdat")
+
       bary.locations = list(locations=locations, element_ids = bigsol[[11]], barycenters = bigsol[[12]])    
   }
   class(bary.locations) = "bary.locations"
@@ -334,13 +335,20 @@ smooth.FEM.mixed<-function(locations = NULL, observations, FEMbasis,
   # Prepare return list
   reslist = NULL
   if(optim[3]==1) {
+print(" ggggggggtssssssssttttttttt")
+
     pure_obs_len = length(which(!is.na(observations)))
     stderr=sqrt(GCV_*(pure_obs_len-dof)/pure_obs_len)
+print(" aaaaaaaaaggggggggtttttttttt")
+    
     reslist=list(fit.FEM.mixed = fit.FEM.mixed, PDEmisfit.FEM.mixed = PDEmisfit.FEM.mixed, 
       beta = beta, b_i = b_i, edf = dof, GCV = GCV_, stderr=stderr, bestlambda = bestlambda, bary.locations = bary.locations)
   } else {
+print(" ggggggggttttgggggggtttttt")
+
     reslist=list(fit.FEM.mixed = fit.FEM.mixed, PDEmisfit.FEM.mixed = PDEmisfit.FEM.mixed, beta = beta, b_i = b_i, bary.locations = bary.locations)
   }
+print(" ggggggggtttthhhhhhhhhhtttttt")
 
 
   return(reslist)

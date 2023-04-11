@@ -51,6 +51,10 @@ if(class(x$FEMbasis$mesh)=="mesh.2D"){
 }
 }
 
+#' Plot a \code{FEM.mixed} object
+#'
+#' @export
+
 plot.FEM.mixed = function(x, lambda=NULL, num_refinements=NULL,...)
 {
 if(class(x) != 'FEM.mixed')

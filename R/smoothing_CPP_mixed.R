@@ -22,6 +22,8 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis, covariates, n
   {
     locations<-matrix(nrow = 0, ncol = ndim)
   }
+print(" aajjjjjjja?????")
+
 
   if(is.null(incidence_matrix))
   {
@@ -51,6 +53,7 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis, covariates, n
   {
     lambda<-as.vector(lambda)
   }
+print(" aajssssa?????")
 
   ## Set proper type for correct C++ reading
   locations <- as.matrix(locations)
@@ -68,29 +71,37 @@ CPP_smooth.FEM.mixed<-function (locations, observations, FEMbasis, covariates, n
   storage.mode(ndim) <- "integer"
   storage.mode(mydim) <- "integer"
   storage.mode(BC$BC_indices) <- "integer"
+print(" aajjjsssssssssssssssssjjjja?????")
+
   storage.mode(BC$BC_values) <-"double"
   incidence_matrix <- as.matrix(incidence_matrix)
   storage.mode(incidence_matrix) <- "integer"
   areal.data.avg <- as.integer(areal.data.avg)
   storage.mode(areal.data.avg) <-"integer"
   storage.mode(search) <- "integer"
+print(" afffffffffffffff?")
+
   storage.mode(optim) <- "integer"  
   storage.mode(lambda) <- "double"
   DOF.matrix <- as.matrix(DOF.matrix)
   storage.mode(DOF.matrix) <- "double"
   storage.mode(DOF.stochastic.realizations) <- "integer"
+print(" nnnnnnnnnnnnnn?????")
   storage.mode(DOF.stochastic.seed) <- "integer"
   storage.mode(GCV.inflation.factor) <- "double"
   storage.mode(lambda.optimization.tolerance) <- "double"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
   verbose<-as.integer(verbose)
+print(" uuuuuuu?????")
   storage.mode(verbose)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   storage.mode(threshold_residual) <- "double"
+print(" aajjjhhhhhhhhjjjja?????")
 
   ## Call C++ function
   bigsol <- .Call("regression_Laplace_mixed", locations, bary.locations, observations, num_units, random_effect, FEMbasis$mesh, FEMbasis$order, mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, search, optim, lambda, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, PACKAGE = "fdaPDE", FLAG_ITERATIVE, threshold, max.steps, threshold_residual, verbose)
+  print ("blabalbak")
   return(bigsol)
 }

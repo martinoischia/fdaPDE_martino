@@ -3,7 +3,7 @@
 checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMbasis, covariates, PDE_parameters = NULL, BC = NULL, incidence_matrix = NULL, areal.data.avg = TRUE, search = 'tree', bary.locations = NULL, optim, lambda = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05, FLAG_ITERATIVE, threshold, max.steps, threshold_residual)
  {
   #################### Full Consistency Parameter Check #########################
-
+print(" aaa")
   # Mesh type and methods
   if (is.null(FEMbasis)) {
     stop("FEMbasis required;  is NULL.")
@@ -35,6 +35,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
   if (is.null(covariates)) {
     stop("covariates required;  is NULL.")
   }
+print(" adswf")
 
 
   if (!is.null(locations) & !is.null(incidence_matrix))
@@ -59,6 +60,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
   }
 
     space_varying <- FALSE
+print(" gesgeh")
 
   if (!is.null(PDE_parameters$u)) {
     space_varying <- TRUE
@@ -81,6 +83,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
   else if (!is.null(PDE_parameters)) {
     message("Smoothing: anysotropic and stationary case")
   }
+print(" adwgeeg")
 
   if (is.null(PDE_parameters)) {
     message("Smoothing: isotropic and stationary case")
@@ -95,6 +98,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
       stop("'BC_indices' required in BC;  is NULL.")
     }
   }
+print(" aagegaea")
 
 
   # Check the locations in 'bary.locations' and 'locations' are the same
@@ -123,6 +127,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
     if(length(lambda) > 1)
       warning("In optimized methods 'lambda' is the initial value, all terms following the first will be discarded")
   }
+print(" awfawawaa")
 
   # --> Stochastic related data
   if(!is.numeric(DOF.stochastic.realizations))
@@ -151,6 +156,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
   }
   if(GCV.inflation.factor != 1 & optim[3] != 1)
     warning("'GCV' not selected as 'loss function', 'GCV.inflation.factor' unused")
+print(" aaaaaaaaaaw")
   
   # --> DOF.matrix related
   if(!is.null(DOF.matrix))
@@ -164,6 +170,7 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
   }
   if(is.null(DOF.matrix) & optim[2]==0 & optim[3]==1)
     stop("Either 'DOF.matrix' different from NULL or 'DOF.evaluation' different from NULL, otherwise 'lambda.selection.lossfunction' = 'GCV' can't be computed")
+print(" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   
   # --> TOLERANCE
   if(!is.numeric(lambda.optimization.tolerance))
@@ -178,14 +185,20 @@ checkSmoothingParameters_mixed <- function(locations = NULL, observations, FEMba
     stop("FLAG_ITERATIVE required;  is NULL.")
   if(!is.logical(FLAG_ITERATIVE))
     stop("'FLAG_ITERATIVE' is not logical")
+print(" aaabbbbbbbbbbbbbbbbbbbbbnn")
 
   # Check max.steps and threshold for the iterative method 
   if(!all.equal(max.steps, as.integer(max.steps)) || max.steps <= 0 )
     stop("'max.steps' must be a positive integer.")
-  if( !is.numeric(threshold) || threshold <= 0)
-    stop("'threshold' must be a real positive")
-  if( !is.numeric(threshold_residual) || threshold_residual <= 0)
-    stop("'threshold_residual' must be a real positive")
+print(" aajjjjjjja?????")
+  
+#   if( !is.numeric(threshold) || threshold <= 0)
+#     stop("'threshold' must be a real positive")
+# print(" hhhhhhaaa?????")
+  
+#   if( !is.numeric(threshold_residual) || threshold_residual <= 0)
+#     stop("'threshold_residual' must be a real positive")
+# print(" aaa?????")
 
   # Return information
   return(space_varying)

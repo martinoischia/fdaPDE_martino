@@ -3,6 +3,7 @@
 S3method(image,FEM)
 S3method(image,FEM.time)
 S3method(plot,FEM)
+S3method(plot,FEM.mixed)
 S3method(plot,FEM.time)
 S3method(plot,MESH2D)
 S3method(plot,mesh.2.5D)

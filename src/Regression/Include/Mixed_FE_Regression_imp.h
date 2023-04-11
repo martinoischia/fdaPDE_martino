@@ -859,7 +859,7 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
 	{ //areal data
         X1 = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(psi_);
     }
-
+Rprintf("step1\n");
     if (isRcomputed_ == false)
     {
         isRcomputed_ = true;
@@ -872,6 +872,7 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
             R_ = R1_.transpose() * X2;
         }
     }
+Rprintf("step2\n");
 
     MatrixXr P;
     MatrixXr X3=X1;
@@ -904,6 +905,7 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
             X3(id,id)=pen;
         }
     }
+Rprintf("stepss\n");
 
     X3 -= P; 
     Eigen::PartialPivLU<MatrixXr> Dsolver(X3);
@@ -918,6 +920,8 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
 		UInt nlocations = regressionData_.getNumberofObservations();
 		B = MatrixXr::Zero(nnodes, nlocations);
 		// B = I(:,k) * Q
+Rprintf("step1\n");
+
 		for (auto i = 0; i < nlocations; ++i)
 		{
 			VectorXr ei = VectorXr::Zero(nlocations);
@@ -937,6 +941,7 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
 			degrees += X((*k)[i], i);
 		}
 	}
+Rprintf("stepsadsa\n");
 
 	if (regressionData_.isSpaceTime() || !regressionData_.isLocationsByNodes() || regressionData_.isMixed())
     {
@@ -952,6 +957,7 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
 			degrees += X(i, i);
 		}
 	}
+Rprintf("stepawdwaawwa\n");
 
     _dof(output_indexS,output_indexT) = degrees;
 }
@@ -1159,7 +1165,6 @@ template<UInt ORDER, UInt mydim, UInt ndim, typename A>
 void MixedFERegressionBase<InputHandler>::preapply(EOExpr<A> oper, const ForcingTerm & u, const MeshHandler<ORDER, mydim, ndim> & mesh_)
 {
 	const auto * Wp = regressionData_.getCovariates();
-
 	UInt nnodes = N_*M_;	// total number of spatio-temporal nodes
 	FiniteElement<ORDER, mydim, ndim> fe;
 	// Set Areal data if present and no already done
@@ -1282,6 +1287,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 {
 	UInt nnodes = N_*M_; // Define nuber of nodes
 	const VectorXr * obsp = regressionData_.getObservations(); // Get observations
+	Rprintf("\n\n ehadsawhhh");
 
 	UInt sizeLambdaS;
 	if (!regressionData_.isSpaceTime() && !isGAMData &&!regressionData_.isMixed())
@@ -1314,6 +1320,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 
 			Real lambdaT = (optimizationData_.get_lambda_T())[t];
 			_rightHandSide = rhs;
+	Rprintf("\n\nherwwh");
 
 			if(isGAMData || regressionData_.isSpaceTime() || optimizationData_.get_current_lambdaS()!=optimizationData_.get_last_lS_used() || regressionData_.isMixed())
 			{
@@ -1326,12 +1333,14 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 					buildSystemMatrixNoCov(lambdaS, lambdaT);
 				}
 			}
+	Rprintf("\n\n eetyhj");
 
 			// Right-hand side correction for space varying PDEs
 			if(this->isSpaceVarying)
 			{
 			    _rightHandSide.bottomRows(nnodes)= (lambdaS)*rhs_ft_correction_;
 			}
+	Rprintf("\n\ngggggggghh");
 
 			// Right-hand side correction for initial condition in parabolic case
 			if(regressionData_.isSpaceTime() && regressionData_.getFlagParabolic())
@@ -1341,6 +1350,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 					_rightHandSide(nnodes+i) += lambdaS*lambdaT* rhs_ic_correction_(i);
 				}
 			}
+	Rprintf("\n\n jjjjjjjjjjh");
 
 			// Applying boundary conditions if necessary
 			if(regressionData_.getDirichletIndices()->size() != 0)  // if areal data NO BOUNDARY CONDITIONS
@@ -1352,18 +1362,22 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			{
 				system_factorize();
 			}
+	Rprintf("\n\n hearjettjh");
 
 			// system solution
 			_solution(s,t) = this->template system_solve(this->_rightHandSide);
 
+	Rprintf("\n\n tytttttttth");
 
 			if(optimizationData_.get_loss_function()=="GCV" && (!isGAMData && (regressionData_.isSpaceTime() || regressionData_.isMixed())))
 			{
 				if (optimizationData_.get_DOF_evaluation()!="not_required")
 				{
 					computeDegreesOfFreedom(s,t,lambdaS,lambdaT);
+	Rprintf("\nlllllllllll");
 				}
 				computeGeneralizedCrossValidation(s,t,lambdaS,lambdaT);
+				Rprintf("\nllllllllllssadas");
 			}
 			else
 			{
@@ -1404,9 +1418,6 @@ template<typename InputHandler>
 MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void)
 {
     UInt nnodes = N_ * M_; // Define number of space-times nodes
-	if (regressionData_.isSpaceTime()){
-    	Real delta = mesh_time_[1] - mesh_time_[0]; // Time interval
-	}
     const VectorXr *obsp = regressionData_.getObservations(); // Get observations
     UInt nlocations = regressionData_.getNumberofSpaceObservations();
 
