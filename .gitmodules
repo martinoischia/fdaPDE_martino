@@ -1,0 +1,3 @@
+[submodule "src/fixed-point_iteration_acceleration"]
+	path = src/fixed-point_iteration_acceleration
+	url = git@github.com:martinoischia/fixed-point_iteration_acceleration.git
