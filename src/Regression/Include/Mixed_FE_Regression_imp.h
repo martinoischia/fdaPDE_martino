@@ -8,6 +8,7 @@
 #include <sstream>
 #include <thread>
 #include "R_ext/Print.h"
+#include "../../Global_Utilities/Include/Timing.h"
 
 //----------------------------------------------------------------------------//
 // Dirichlet BC
@@ -672,7 +673,6 @@ void MixedFERegressionBase<InputHandler>::system_factorize()
 	matrixNoCovdec_.compute(matrixNoCov_);
 
 	const auto &W(*(this->regressionData_.getCovariates()));
-
 	if (regressionData_.getCovariates()->rows() != 0 && !isUVComputed)
 	{ // Needed only if there are covariates, else we can stop before
 		// Second phase: factorization of matrix  G =  C + [V * matrixNoCov^-1 * U]= C + D
@@ -1017,13 +1017,13 @@ void MixedFERegressionBase<InputHandler>::computeDOFExact_iterative_old(UInt out
 {
 	Real degrees = 0;
 	UInt nlocations = regressionData_.getNumberofSpaceObservations();
-
 	for (UInt k = 0; k < M_; k++)
 	{
-		MatrixXr X1;
 		if (!regressionData_.getObservationsNA()->empty())
+		{
 			build_psi_mini(k);
-		X1 = psi_mini.transpose() * psi_mini + U_.middleRows(N_ * k, N_) * WTW_inv * U_.middleRows(N_ * k, N_).transpose();
+		}
+		MatrixXr X1 = psi_mini.transpose() * psi_mini + U_.middleRows(N_ * k, N_) * WTW_inv * U_.middleRows(N_ * k, N_).transpose();
 
 		if (isRcomputed_ == false)
 		{
@@ -1143,6 +1143,7 @@ void MixedFERegressionBase<InputHandler>::build_psi_mini(UInt k)
 			if (psi_mini.coeff(id, j) != 0)
 				psi_mini.coeffRef(id, j) = 0;
 	}
+	psi_mini.pruned();
 }
 
 template <typename InputHandler>
@@ -1540,28 +1541,34 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 			std::vector<Real> temporary_residual_norm;
 			const Real normalizing_factor = _rightHandSide.norm();
 			temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
-
+			Rprintf("residual: %g", temporary_residual_norm.back());
 			J = compute_J(s, t);
 			auto &iteration = iterations__(s, t);
 			iteration = 0;
 			while (stopping_criterion(iteration, J, J_old, temporary_residual_norm.back()))
-
 			{
 				++iteration;
 				if (regressionData_.verbose_)
-					Rprintf("in iteration %d", iteration);
+					Rprintf("in iteration %d\n", iteration);
 				for (UInt k = 0; k < M_; ++k)
 				{
 
 					if (regressionData_.getObservationsNA()->size() != 0)
 					// modifying psi_mini to take care of missing values
 					{
+						timer Timer;
+						Timer.start();
 						build_psi_mini(k);
+						timespec timestop = Timer.stop();
+						Rprintf("step: buildpsimini %d\n", timestop.tv_sec);
 						DMat_ = psi_mini.transpose() * psi_mini;
 						buildSystemMatrixNoCov(lambdaS, lambdaT);
 						if (regressionData_.getDirichletIndices()->size() != 0)
 							addDirichletBC();
+						Timer.start();
 						system_factorize();
+						timestop = Timer.stop();
+						Rprintf("step: system factorize %d\n", timestop.tv_sec);
 					}
 
 					residual_k.head(N_) = residual.segment(k * N_, N_);
@@ -1574,7 +1581,11 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 					}
 					else
 					{
+						timer Timer;
+						Timer.start();
 						_solution_k_ = this->template solve_covariates_iter(residual_k, k);
+						timespec timestop = Timer.stop();
+						Rprintf("step: solve covariates iter %d\n", timestop.tv_sec);
 					}
 
 					// Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t)
@@ -1585,9 +1596,12 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 					preconditioned_residual.segment(nnodes + k * N_, N_) = _solution_k_.bottomRows(N_);
 				}
 
+				timer Timer;
+				Timer.start();
 				// Update the residual
 				residual -= LeftMultiplyByMonolithic_iterative(preconditioned_residual, lambdaS, lambdaT);
 				temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
+				Rprintf("residual: %g", temporary_residual_norm.back());
 				// covariates computation
 				if (regressionData_.getCovariates()->rows() != 0)
 				{
@@ -1599,6 +1613,8 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 
 				J_old = J;
 				J = compute_J(s, t);
+				timespec timestop = Timer.stop();
+				Rprintf("step: computation various %d\n", timestop.tv_sec);
 			}
 			residual_norm__(s, t).resize(temporary_residual_norm.size());
 			for (int idx = 0; idx < temporary_residual_norm.size(); ++idx)

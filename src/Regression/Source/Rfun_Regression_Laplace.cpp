@@ -19,7 +19,7 @@ extern "C"
 		\param Rlocations an R-matrix containing the spatial locations of the observations
 		\param RbaryLocations A list with three vectors:
 				location points which are same as the given locations options (to checks whether both locations are the same),
-		 		a vector of element id of the points from the mesh where they are located,
+				a vector of element id of the points from the mesh where they are located,
 				a vector of barycenter of points from the located element.
 		\param Robservations an R-vector containing the values of the observations.
 		\param Rmesh an R-object containg the output mesh from Trilibrary
@@ -42,31 +42,31 @@ extern "C"
 		\param Rsct user defined stopping criterion tolerance for optimized methods (newton or newton with finite differences)
 		\return R-vectors containg the coefficients of the solution, prediction of the values, optimization data and much more
 	*/
-	SEXP regression_Laplace(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rmesh, SEXP Rorder,SEXP Rmydim, SEXP Rndim,
-		SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch,
-		SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
+	SEXP regression_Laplace(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rmesh, SEXP Rorder, SEXP Rmydim, SEXP Rndim,
+							SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch,
+							SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
 	{
-		//Set input data
+		// Set input data
 		RegressionData<> regressionData(Rlocations, RbaryLocations, Robservations, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch);
 		OptimizationData optimizationData(Roptim, Rlambda, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
 
 		UInt mydim = INTEGER(Rmydim)[0];
 		UInt ndim = INTEGER(Rndim)[0];
 
-		if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
-			return(regression_skeleton<RegressionData<>, 1, 2, 2>(regressionData, optimizationData, Rmesh));
-		else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
-			return(regression_skeleton<RegressionData<>, 2, 2, 2>(regressionData, optimizationData, Rmesh));
-		else if(regressionData.getOrder()==1 && mydim==2 && ndim==3)
-			return(regression_skeleton<RegressionData<>, 1, 2, 3>(regressionData, optimizationData, Rmesh));
-		else if(regressionData.getOrder()==2 && mydim==2 && ndim==3)
-			return(regression_skeleton<RegressionData<>, 2, 2, 3>(regressionData, optimizationData, Rmesh));
-		else if(regressionData.getOrder()==1 && mydim==3 && ndim==3)
-			return(regression_skeleton<RegressionData<>, 1, 3, 3>(regressionData, optimizationData, Rmesh));
-		else if(regressionData.getOrder()==2 && mydim==3 && ndim==3)
-			return(regression_skeleton<RegressionData<>, 2, 3, 3>(regressionData, optimizationData, Rmesh));
+		if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 2)
+			return (regression_skeleton<RegressionData<>, 1, 2, 2>(regressionData, optimizationData, Rmesh));
+		else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 2)
+			return (regression_skeleton<RegressionData<>, 2, 2, 2>(regressionData, optimizationData, Rmesh));
+		else if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 3)
+			return (regression_skeleton<RegressionData<>, 1, 2, 3>(regressionData, optimizationData, Rmesh));
+		else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 3)
+			return (regression_skeleton<RegressionData<>, 2, 2, 3>(regressionData, optimizationData, Rmesh));
+		else if (regressionData.getOrder() == 1 && mydim == 3 && ndim == 3)
+			return (regression_skeleton<RegressionData<>, 1, 3, 3>(regressionData, optimizationData, Rmesh));
+		else if (regressionData.getOrder() == 2 && mydim == 3 && ndim == 3)
+			return (regression_skeleton<RegressionData<>, 2, 3, 3>(regressionData, optimizationData, Rmesh));
 
-		return(NILSXP);
+		return (NILSXP);
 	}
 
 	//! This function manages the various options for Spatio-Temporal Regression
@@ -75,7 +75,7 @@ extern "C"
 		\param Rlocations an R-matrix containing the spatial locations of the observations
 		\param RbaryLocations A list with three vectors:
 				location points which are same as the given locations options (to checks whether both locations are the same),
-		 		a vector of element id of the points from the mesh where they are located,
+				a vector of element id of the points from the mesh where they are located,
 				a vector of barycenter of points from the located element.
 		\param Rtime_locations an R-vector containing the temporal locations of the observations
 		\param Robservations an R-vector containing the values of the observations.
@@ -93,7 +93,7 @@ extern "C"
 		\param Rflag_mass an R-integer that in case of separable problem specifies whether to use mass discretization or identity discretization
 		\param Rflag_parabolic an R-integer specifying if the problem is parabolic or separable
 		\param Rflag_iterative an R-integer specifying if the method is monolithic or iterative
-	    \param Rmax_num_iteration Maximum number of steps run in the iterative algorithm, set to 50 by default.
+		\param Rmax_num_iteration Maximum number of steps run in the iterative algorithm, set to 50 by default.
 		\param Rtreshold an R-double used for arresting the iterative algorithm. Algorithm stops when two successive iterations lead to improvement in penalized log-likelihood smaller than threshold.
 		\param Ric an R-vector containing the initial condition needed in case of parabolic problem
 		\param Rsearch an R-integer to decide the search algorithm type (tree or naive search algorithm).
@@ -108,58 +108,51 @@ extern "C"
 		\return R-vectors containg the coefficients of the solution, prediction of the values, optimization data and much more
 	*/
 	SEXP regression_Laplace_time(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rmesh, SEXP Rmesh_time, SEXP Rorder, SEXP Rmydim, SEXP Rndim,
-		SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,  SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic,SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rtreshold, SEXP Ric, SEXP Rsearch,
-		SEXP Roptim, SEXP Rlambda_S, SEXP Rlambda_T, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
+								 SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rtreshold, SEXP Ric, SEXP Rsearch,
+								 SEXP Roptim, SEXP Rlambda_S, SEXP Rlambda_T, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
 	{
-	    	//Set input data
+		// Set input data
 		RegressionData<> regressionData(Rlocations, RbaryLocations, Rtime_locations, Robservations, Rorder, Rcovariates, RBCIndices, RBCValues,
-			RincidenceMatrix, RarealDataAvg, Rflag_mass, Rflag_parabolic,Rflag_iterative, Rmax_num_iteration, Rtreshold, Ric, Rsearch);
+										RincidenceMatrix, RarealDataAvg, Rflag_mass, Rflag_parabolic, Rflag_iterative, Rmax_num_iteration, Rtreshold, Ric, Rsearch);
 		OptimizationData optimizationData(Roptim, Rlambda_S, Rlambda_T, Rflag_parabolic, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
 
 		UInt mydim = INTEGER(Rmydim)[0];
 		UInt ndim = INTEGER(Rndim)[0];
 
-		if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
-			return(regression_skeleton_time<RegressionData<>, 1, 2, 2>(regressionData, optimizationData, Rmesh, Rmesh_time));
-		else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
-			return(regression_skeleton_time<RegressionData<>, 2, 2, 2>(regressionData, optimizationData, Rmesh, Rmesh_time));
-		else if(regressionData.getOrder()==1 && mydim==2 && ndim==3)
-			return(regression_skeleton_time<RegressionData<>, 1, 2, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
-		else if(regressionData.getOrder()==2 && mydim==2 && ndim==3)
-			return(regression_skeleton_time<RegressionData<>, 2, 2, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
-		else if(regressionData.getOrder()==1 && mydim==3 && ndim==3)
-			return(regression_skeleton_time<RegressionData<>, 1, 3, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
-		else if(regressionData.getOrder()==2 && mydim==3 && ndim==3)
-			return(regression_skeleton_time<RegressionData<>, 2, 3, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
+		if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 2)
+			return (regression_skeleton_time<RegressionData<>, 1, 2, 2>(regressionData, optimizationData, Rmesh, Rmesh_time));
+		else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 2)
+			return (regression_skeleton_time<RegressionData<>, 2, 2, 2>(regressionData, optimizationData, Rmesh, Rmesh_time));
+		else if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 3)
+			return (regression_skeleton_time<RegressionData<>, 1, 2, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
+		else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 3)
+			return (regression_skeleton_time<RegressionData<>, 2, 2, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
+		else if (regressionData.getOrder() == 1 && mydim == 3 && ndim == 3)
+			return (regression_skeleton_time<RegressionData<>, 1, 3, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
+		else if (regressionData.getOrder() == 2 && mydim == 3 && ndim == 3)
+			return (regression_skeleton_time<RegressionData<>, 2, 3, 3>(regressionData, optimizationData, Rmesh, Rmesh_time));
 
-
-	    	return(NILSXP);
+		return (NILSXP);
 	}
 
 	SEXP regression_Laplace_mixed(
-					SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rmesh, SEXP Rorder,SEXP Rmydim, SEXP Rndim, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmaxsteps, SEXP Rthreshold_residual, SEXP verbose)
+		SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP RnumUnits, SEXP RRandomEffect, SEXP Rmesh, SEXP Rorder, SEXP Rmydim, SEXP Rndim, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct, SEXP RFLAG_ITERATIVE, SEXP Rthreshold, SEXP Rmaxsteps, SEXP Rthreshold_residual, SEXP verbose)
 	{
-	//Set input data
-	RegressionData<SpMat> regressionData(Rlocations, RbaryLocations, Robservations, RnumUnits, RRandomEffect, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch, RFLAG_ITERATIVE, Rthreshold, Rmaxsteps, Rthreshold_residual, verbose, verbose ); // for dummy
-	OptimizationData optimizationData(Roptim, Rlambda, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
+		// Set input data
+		OptimizationData optimizationData(Roptim, Rlambda, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
 
-	UInt mydim=INTEGER(Rmydim)[0];
-	UInt ndim=INTEGER(Rndim)[0];
-
-    if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
-    	return(regression_skeleton_mixed<RegressionData<SpMat>, 1, 2, 2>(regressionData, optimizationData, Rmesh));
-    else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
-		return(regression_skeleton_mixed<RegressionData<SpMat>, 2, 2, 2>(regressionData, optimizationData, Rmesh));
-    else if(regressionData.getOrder()==1 && mydim==2 && ndim==3)
-		return(regression_skeleton_mixed<RegressionData<SpMat>, 1, 2, 3>(regressionData, optimizationData, Rmesh));
-   else if(regressionData.getOrder()==2 && mydim==2 && ndim==3)
-		return(regression_skeleton_mixed<RegressionData<SpMat>, 2, 2, 3>(regressionData, optimizationData, Rmesh));
-	else if(regressionData.getOrder()==1 && mydim==3 && ndim==3)
-		return(regression_skeleton_mixed<RegressionData<SpMat>, 1, 3, 3>(regressionData, optimizationData, Rmesh));
-    return(NILSXP);
+		UInt mydim = INTEGER(Rmydim)[0];
+		UInt ndim = INTEGER(Rndim)[0];
+		int p_ = Rf_length(RRandomEffect);
+		if (p_ == 0) // fixed-effects model
+		{
+			return skeleton_caller_mixed<RegressionData<MatrixXr>>(Rlocations, RbaryLocations, Robservations, RnumUnits, RRandomEffect, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch, RFLAG_ITERATIVE, Rthreshold, Rmaxsteps, Rthreshold_residual, verbose, Rmesh, optimizationData, mydim, ndim);
+		}
+		else // true mixed-effects
+		{
+			return skeleton_caller_mixed<RegressionData<SpMat>>(Rlocations, RbaryLocations, Robservations, RnumUnits, RRandomEffect, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch, RFLAG_ITERATIVE, Rthreshold, Rmaxsteps, Rthreshold_residual, verbose, Rmesh, optimizationData, mydim, ndim);
+		}
 	}
-	
-	
 
 	//! This function manages the various options for GAM Spatial Regression
 	/*!
@@ -196,33 +189,33 @@ extern "C"
 		\param Rsct user defined stopping criterion tolerance for optimized methods (newton or newton with finite differences)
 		\return R-vectors containg the coefficients of the solution, prediction of the values, optimization data and much more
 	*/
-	 SEXP gam_Laplace(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rmesh, SEXP Rorder,SEXP Rmydim, SEXP Rndim,
-		SEXP Rcovariates,  SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
-		SEXP Rfamily, SEXP Rmax_num_iteration, SEXP Rtreshold, SEXP Rmu0, SEXP RscaleParam, SEXP Rsearch,
-		SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
+	SEXP gam_Laplace(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rmesh, SEXP Rorder, SEXP Rmydim, SEXP Rndim,
+					 SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
+					 SEXP Rfamily, SEXP Rmax_num_iteration, SEXP Rtreshold, SEXP Rmu0, SEXP RscaleParam, SEXP Rsearch,
+					 SEXP Roptim, SEXP Rlambda, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
 	{
-	    	// Set up the GAMdata structure for the laplacian case
+		// Set up the GAMdata structure for the laplacian case
 		GAMDataLaplace regressionData(Rlocations, RbaryLocations, Robservations, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch, Rmax_num_iteration, Rtreshold);
 		OptimizationData optimizationData(Roptim, Rlambda, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
 
-	 	UInt mydim = INTEGER(Rmydim)[0]; // Set the mesh dimension form R to C++
-		UInt ndim = INTEGER(Rndim)[0]; // Set the mesh space dimension form R to C++
+		UInt mydim = INTEGER(Rmydim)[0]; // Set the mesh dimension form R to C++
+		UInt ndim = INTEGER(Rndim)[0];	 // Set the mesh space dimension form R to C++
 
-	  	std::string family = CHAR(STRING_ELT(Rfamily,0));
+		std::string family = CHAR(STRING_ELT(Rfamily, 0));
 
-		if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
-			return(GAM_skeleton<GAMDataLaplace, 1, 2, 2>(regressionData, optimizationData, Rmesh, Rmu0 , family, RscaleParam));
-		else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
-			return(GAM_skeleton<GAMDataLaplace, 2, 2, 2>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
-		else if(regressionData.getOrder()==1 && mydim==2 && ndim==3)
-			return(GAM_skeleton<GAMDataLaplace, 1, 2, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
-		else if(regressionData.getOrder()==2 && mydim==2 && ndim==3)
-			return(GAM_skeleton<GAMDataLaplace, 2, 2, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
-		else if(regressionData.getOrder()==1 && mydim==3 && ndim==3)
-			return(GAM_skeleton<GAMDataLaplace, 1, 3, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
-		else if(regressionData.getOrder()==2 && mydim==3 && ndim==3)
-			return(GAM_skeleton<GAMDataLaplace, 2, 3, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
+		if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 2)
+			return (GAM_skeleton<GAMDataLaplace, 1, 2, 2>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
+		else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 2)
+			return (GAM_skeleton<GAMDataLaplace, 2, 2, 2>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
+		else if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 3)
+			return (GAM_skeleton<GAMDataLaplace, 1, 2, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
+		else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 3)
+			return (GAM_skeleton<GAMDataLaplace, 2, 2, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
+		else if (regressionData.getOrder() == 1 && mydim == 3 && ndim == 3)
+			return (GAM_skeleton<GAMDataLaplace, 1, 3, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
+		else if (regressionData.getOrder() == 2 && mydim == 3 && ndim == 3)
+			return (GAM_skeleton<GAMDataLaplace, 2, 3, 3>(regressionData, optimizationData, Rmesh, Rmu0, family, RscaleParam));
 
-		return(R_NilValue);
+		return (R_NilValue);
 	}
 }

@@ -167,4 +167,20 @@ SEXP regression_skeleton_mixed(InputHandler &regressionData, OptimizationData op
 	return (result);
 }
 
+template <typename RegressionDataType>
+SEXP skeleton_caller_mixed(SEXP &Rlocations, SEXP &RbaryLocations, SEXP &Robservations, SEXP &RnumUnits, SEXP &RRandomEffect, SEXP &Rorder, SEXP &Rcovariates, SEXP &RBCIndices, SEXP &RBCValues, SEXP &RincidenceMatrix, SEXP &RarealDataAvg, SEXP &Rsearch, SEXP &RFLAG_ITERATIVE, SEXP &Rthreshold, SEXP &Rmaxsteps, SEXP &Rthreshold_residual, SEXP &verbose, SEXP &Rmesh, OptimizationData &optimizationData, UInt mydim, UInt ndim)
+{
+	RegressionDataType regressionData(Rlocations, RbaryLocations, Robservations, RnumUnits, RRandomEffect, Rorder, Rcovariates, RBCIndices, RBCValues, RincidenceMatrix, RarealDataAvg, Rsearch, RFLAG_ITERATIVE, Rthreshold, Rmaxsteps, Rthreshold_residual, verbose, verbose); // for dummy
+	if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 2)
+		return (regression_skeleton_mixed<RegressionDataType, 1, 2, 2>(regressionData, optimizationData, Rmesh));
+	else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 2)
+		return (regression_skeleton_mixed<RegressionDataType, 2, 2, 2>(regressionData, optimizationData, Rmesh));
+	else if (regressionData.getOrder() == 1 && mydim == 2 && ndim == 3)
+		return (regression_skeleton_mixed<RegressionDataType, 1, 2, 3>(regressionData, optimizationData, Rmesh));
+	else if (regressionData.getOrder() == 2 && mydim == 2 && ndim == 3)
+		return (regression_skeleton_mixed<RegressionDataType, 2, 2, 3>(regressionData, optimizationData, Rmesh));
+	else if (regressionData.getOrder() == 1 && mydim == 3 && ndim == 3)
+		return (regression_skeleton_mixed<RegressionDataType, 1, 3, 3>(regressionData, optimizationData, Rmesh));
+	return (NILSXP);
+}
 #endif

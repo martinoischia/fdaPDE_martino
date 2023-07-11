@@ -130,7 +130,7 @@ smooth.FEM.mixed <- function(locations = NULL, observations, FEMbasis,
   }
 
   # Checking random effect
-  if (is.null(random_effect)) stop(" you called a mixed solver with no mixed effects covariates")
+  if (is.null(random_effect)) warning(" you called a mixed solver with no random effects, it is therefore a fixed-effects model")
   random_effect <- sort(as.vector(random_effect))
   if (!is.null(random_effect)) {
     if (ncol(covariates) < length(random_effect)) {
@@ -257,25 +257,26 @@ smooth.FEM.mixed <- function(locations = NULL, observations, FEMbasis,
     }
   }
   b_i <- matrix(0, nrow = num_units * p, ncol = length(lambda))
-  indRanEff <- 1 # this index will be cycled according to random_effect elements
-
-  for (i in 1:(num_units * p))
-  {
-    b_i[i, ] <- b_iPrime[i, ] - beta[random_effect[ifelse(indRanEff != 0, indRanEff, p)], ]
-    indRanEff <- (indRanEff + 1) %% p
-  }
-
-  # change the name of the rows
-  rname <- c()
-  for (i in 1:num_units) {
-    temp <- paste("b_", as.character(i), sep = "")
-    for (j in 1:p) {
-      temp2 <- paste(temp, as.character(j), sep = "")
-      rname <- c(rname, temp2)
+  if (p != 0) {
+    indRanEff <- 1 # this index will be cycled according to random_effect elements
+    for (i in 1:(num_units * p))
+    {
+      b_i[i, ] <- b_iPrime[i, ] - beta[random_effect[ifelse(indRanEff != 0, indRanEff, p)], ]
+      indRanEff <- (indRanEff + 1) %% p
     }
+
+    # change the name of the rows
+    rname <- c()
+    for (i in 1:num_units) {
+      temp <- paste("b_", as.character(i), sep = "")
+      for (j in 1:p) {
+        temp2 <- paste(temp, as.character(j), sep = "")
+        rname <- c(rname, temp2)
+      }
+    }
+    rownames(b_i) <- rname
   }
 
-  rownames(b_i) <- rname
   # End of conversion
 
 
