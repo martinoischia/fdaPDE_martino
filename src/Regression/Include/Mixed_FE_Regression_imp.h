@@ -9,7 +9,157 @@
 #include <thread>
 #include "R_ext/Print.h"
 #include "../../Global_Utilities/Include/Timing.h"
+#include "../../fixed-point_iteration_acceleration/FixedPointIterator.hpp"
 
+template <class T>
+class MixedFERegression_stopping_criterion : public FixedPoint::further_stopping_criterion
+{
+public:
+	MixedFERegression_stopping_criterion(
+		double threshold_residual_,
+		double threshold_,
+		std::vector<Real> &temporary_residual_norm_,
+		UInt s,
+		UInt t,
+		T &regressor) : J_old(10 ^ (18)), threshold_residual(threshold_residual_), threshold(threshold_), temporary_residual_norm(temporary_residual_norm_), s(s), t(t), mixed_regressor(regressor)
+	{
+		J = mixed_regressor.compute_J(s, t);
+	}
+	bool apply() override
+	{
+		bool do_stop_by_treshold = false;
+		bool do_stop_by_residual = false;
+		if (temporary_residual_norm.back() < threshold_residual)
+		{
+			do_stop_by_residual = true;
+		}
+		if (abs((J - J_old) / J) < threshold)
+		{
+			do_stop_by_treshold = true;
+		}
+
+		return (do_stop_by_treshold && do_stop_by_residual);
+	}
+
+	void update() override
+	{
+		// timer Timer;
+		// Timer.start();
+		J_old = J;
+		J = mixed_regressor.compute_J(s, t);
+		// timespec timestop = Timer.stop();
+		// Rprintf("step: compute new J: %d\n", timestop.tv_sec);
+	}
+
+	double J;
+	double J_old;
+	double threshold_residual;
+	double threshold;
+	std::vector<Real> &temporary_residual_norm;
+	UInt s;
+	UInt t;
+	T &mixed_regressor;
+};
+
+template <class T>
+class SingleIteration
+{
+public:
+	SingleIteration(T &MixedFERegressor, const UInt s, const UInt t) : mixedRegressor(MixedFERegressor), residual(2 * MixedFERegressor.N_ * MixedFERegressor.M_), residual_k(2 * MixedFERegressor.N_), preconditioned_residual(2 * MixedFERegressor.N_ * MixedFERegressor.M_), s(s), t(t), normalizing_factor(MixedFERegressor._rightHandSide.norm())
+	{
+		auto lambdaS = (mixedRegressor.optimizationData_.get_lambda_S())[s];
+		auto lambdaT = (mixedRegressor.optimizationData_.get_lambda_T())[t];
+		residual = mixedRegressor.compute_residual(mixedRegressor._solution(s, t), lambdaS, lambdaT);
+		temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
+	}
+
+	VectorXr
+	operator()(const VectorXr &vector)
+	{
+		auto lambdaS = (mixedRegressor.optimizationData_.get_lambda_S())[s];
+		auto lambdaT = (mixedRegressor.optimizationData_.get_lambda_T())[t];
+		auto &N_ = mixedRegressor.N_;
+		auto &M_ = mixedRegressor.M_;
+		const VectorXr *obsp = mixedRegressor.regressionData_.getObservations();
+
+		for (UInt k = 0; k < M_; ++k)
+		{
+
+			if (mixedRegressor.regressionData_.getObservationsNA()->size() != 0)
+			// modifying psi_mini to take care of missing values
+			{
+				timer Timer;
+				Timer.start();
+				mixedRegressor.build_psi_mini(k);
+				timespec timestop = Timer.stop();
+				Rprintf("step: buildpsimini %d\n", timestop.tv_sec);
+				mixedRegressor.DMat_ = mixedRegressor.psi_mini.transpose() * mixedRegressor.psi_mini;
+				mixedRegressor.buildSystemMatrixNoCov(lambdaS, lambdaT);
+				if (mixedRegressor.regressionData_.getDirichletIndices()->size() != 0)
+					mixedRegressor.addDirichletBC();
+				Timer.start();
+				mixedRegressor.system_factorize();
+				timestop = Timer.stop();
+				Rprintf("step: system factorize %d\n", timestop.tv_sec);
+			}
+
+			residual_k.head(N_) = residual.segment(k * N_, N_);
+			residual_k.tail(N_) = residual.segment(N_ * M_ + k * N_, N_);
+
+			// Solve residual
+			if (mixedRegressor.regressionData_.getCovariates()->rows() == 0)
+			{
+				mixedRegressor._solution_k_ = mixedRegressor.template system_solve(residual_k);
+			}
+			else
+			{
+				timer Timer;
+				Timer.start();
+				mixedRegressor._solution_k_ = mixedRegressor.template solve_covariates_iter(residual_k, k);
+				timespec timestop = Timer.stop();
+				Rprintf("step: solve covariates iter %d\n", timestop.tv_sec);
+			}
+
+			// Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t)
+			mixedRegressor._solution(s, t).segment(k * N_, N_) -= mixedRegressor._solution_k_.topRows(N_);
+			mixedRegressor._solution(s, t).segment(N_ * M_ + k * N_, N_) -= mixedRegressor._solution_k_.bottomRows(N_);
+			// Store solution_k for next residual
+			preconditioned_residual.segment(k * N_, N_) = mixedRegressor._solution_k_.topRows(N_);
+			preconditioned_residual.segment(N_ * M_ + k * N_, N_) = mixedRegressor._solution_k_.bottomRows(N_);
+		}
+
+		timer Timer;
+		Timer.start();
+		// covariates computation
+		if (mixedRegressor.regressionData_.getCovariates()->rows() != 0)
+		{
+			const auto &W(*(mixedRegressor.regressionData_.getCovariates()));
+			VectorXr beta_rhs;
+			beta_rhs = W.transpose() * (*obsp - mixedRegressor.LeftMultiplybyPsi(mixedRegressor._solution(s, t).topRows(mixedRegressor.psi_.cols() * M_)));
+			mixedRegressor._beta(s, t) = mixedRegressor.WTW_inv * (beta_rhs);
+		}
+		// Update the residual
+		residual -= mixedRegressor.LeftMultiplyByMonolithic_iterative(preconditioned_residual, lambdaS, lambdaT);
+		temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
+		Rprintf("residual: %g\n", temporary_residual_norm.back());
+
+		timespec timestop = Timer.stop();
+		Rprintf("step: computation various %d\n", timestop.tv_sec);
+		return vector;
+	}
+
+	std::vector<Real> &getNormVector() { return temporary_residual_norm; }
+
+private:
+	VectorXr residual;
+	VectorXr residual_k;
+	VectorXr preconditioned_residual;
+	T &mixedRegressor;
+	const UInt s;
+	const UInt t;
+	const double normalizing_factor;
+	std::vector<Real> temporary_residual_norm;
+};
 //----------------------------------------------------------------------------//
 // Dirichlet BC
 
@@ -1507,9 +1657,6 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 		for (UInt t = 0; t < sizeLambdaT; ++t)
 		{
 
-			Real J = 0, J_old = 10 ^ (18);
-			VectorXr residual(2 * N_ * M_), residual_k(2 * N_), preconditioned_residual(2 * N_ * M_);
-
 			_solution(s, t) = VectorXr::Zero(2 * nnodes);
 			Real lambdaS = (optimizationData_.get_lambda_S())[s];
 			Real lambdaT = (optimizationData_.get_lambda_T())[t];
@@ -1537,90 +1684,32 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 				tmp = W.transpose() * (*obsp - LeftMultiplybyPsi(_solution(s, t).topRows(psi_.cols() * M_)));
 				_beta(s, t) = WTW_inv * (tmp);
 			}
-			residual = compute_residual(_solution(s, t), lambdaS, lambdaT);
-			std::vector<Real> temporary_residual_norm;
-			const Real normalizing_factor = _rightHandSide.norm();
-			temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
-			Rprintf("residual: %g", temporary_residual_norm.back());
-			J = compute_J(s, t);
-			auto &iteration = iterations__(s, t);
-			iteration = 0;
-			while (stopping_criterion(iteration, J, J_old, temporary_residual_norm.back()))
-			{
-				++iteration;
-				if (regressionData_.verbose_)
-					Rprintf("in iteration %d\n", iteration);
-				for (UInt k = 0; k < M_; ++k)
-				{
 
-					if (regressionData_.getObservationsNA()->size() != 0)
-					// modifying psi_mini to take care of missing values
-					{
-						timer Timer;
-						Timer.start();
-						build_psi_mini(k);
-						timespec timestop = Timer.stop();
-						Rprintf("step: buildpsimini %d\n", timestop.tv_sec);
-						DMat_ = psi_mini.transpose() * psi_mini;
-						buildSystemMatrixNoCov(lambdaS, lambdaT);
-						if (regressionData_.getDirichletIndices()->size() != 0)
-							addDirichletBC();
-						Timer.start();
-						system_factorize();
-						timestop = Timer.stop();
-						Rprintf("step: system factorize %d\n", timestop.tv_sec);
-					}
+			UInt memory = 10;
+			SingleIteration<MixedFERegressionBase<InputHandler>> SI(*this, s, t);
+			// The iterator object
+			FixedPoint::FixedPointIterator FPI;
+			FPI.setIterator(std::unique_ptr<FixedPoint::AndersonAccelerator>(new FixedPoint::AndersonAccelerator{std::move(SI), 2 * nnodes, 1, memory}));
+			std::vector<Real> &temporary_residual_norm = FPI.getIterator().getIterationFunction().target<SingleIteration<MixedFERegressionBase<InputHandler>>>()->getNormVector();
 
-					residual_k.head(N_) = residual.segment(k * N_, N_);
-					residual_k.tail(N_) = residual.segment(N_ * M_ + k * N_, N_);
+			FixedPoint::FixedPointOptions options;
+			options.stop_criterion = std::unique_ptr<MixedFERegression_stopping_criterion<MixedFERegressionBase<InputHandler>>>(new MixedFERegression_stopping_criterion<MixedFERegressionBase<InputHandler>>{regressionData_.get_threshold(), regressionData_.get_threshold_residual(), temporary_residual_norm, s, t, *this});
+			options.maxIter = regressionData_.get_maxiter();
+			options.memory = memory;
+			options.stopping_criterion_bitmap[0] = false;
+			options.stopping_criterion_bitmap[1] = false;
+			options.stopping_criterion_bitmap[2] = true;
+			FPI.getOptions() = std::move(options);
 
-					// Solve residual
-					if (regressionData_.getCovariates()->rows() == 0)
-					{
-						_solution_k_ = this->template system_solve(residual_k);
-					}
-					else
-					{
-						timer Timer;
-						Timer.start();
-						_solution_k_ = this->template solve_covariates_iter(residual_k, k);
-						timespec timestop = Timer.stop();
-						Rprintf("step: solve covariates iter %d\n", timestop.tv_sec);
-					}
-
-					// Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t)
-					_solution(s, t).segment(k * N_, N_) -= _solution_k_.topRows(N_);
-					_solution(s, t).segment(nnodes + k * N_, N_) -= _solution_k_.bottomRows(N_);
-					// Store solution_k for next residual
-					preconditioned_residual.segment(k * N_, N_) = _solution_k_.topRows(N_);
-					preconditioned_residual.segment(nnodes + k * N_, N_) = _solution_k_.bottomRows(N_);
-				}
-
-				timer Timer;
-				Timer.start();
-				// Update the residual
-				residual -= LeftMultiplyByMonolithic_iterative(preconditioned_residual, lambdaS, lambdaT);
-				temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
-				Rprintf("residual: %g", temporary_residual_norm.back());
-				// covariates computation
-				if (regressionData_.getCovariates()->rows() != 0)
-				{
-					const auto &W(*(this->regressionData_.getCovariates()));
-					VectorXr beta_rhs;
-					beta_rhs = W.transpose() * (*obsp - LeftMultiplybyPsi(_solution(s, t).topRows(psi_.cols() * M_)));
-					_beta(s, t) = WTW_inv * (beta_rhs);
-				}
-
-				J_old = J;
-				J = compute_J(s, t);
-				timespec timestop = Timer.stop();
-				Rprintf("step: computation various %d\n", timestop.tv_sec);
-			}
+			// Solving
+			FPI.compute(_solution(s, t));
+			// const auto &temporary_residual_norm = (FPI.getIterator().getIterationFunction().target)->getNormVector();
 			residual_norm__(s, t).resize(temporary_residual_norm.size());
 			for (int idx = 0; idx < temporary_residual_norm.size(); ++idx)
 			{
 				residual_norm__(s, t)(idx) = temporary_residual_norm[idx];
 			}
+			iterations__(s, t) = FPI.getIteration();
 
 			if (optimizationData_.get_loss_function() == "GCV" && (!isGAMData && (regressionData_.isSpaceTime() || regressionData_.isMixed())))
 			{
@@ -1769,33 +1858,6 @@ void MixedFERegressionBase<InputHandler>::initialize_g(Real lambdaS, Real lambda
 // 		//changed approach in the end
 // 	}
 // }
-
-template <typename InputHandler>
-bool MixedFERegressionBase<InputHandler>::stopping_criterion(UInt index, Real J, Real J_old, Real normalized_residual_norm)
-{
-	// return true if the iterative method has to perform another iteration, false if it has to be stopped
-
-	bool do_stop_by_iteration = false; // Do I need to stop becouse n_it > n_max?
-	bool do_stop_by_treshold = false;  // Do I need to stop becouse |{J(i) - J(i-1)}/J(i)|< treshold?
-	bool do_stop_by_residual = false;
-
-	if (index > regressionData_.get_maxiter())
-	{
-		do_stop_by_iteration = true;
-	}
-
-	if (normalized_residual_norm < regressionData_.get_treshold_residual())
-	{
-		do_stop_by_residual = true;
-	}
-
-	if (abs((J - J_old) / J) < regressionData_.get_treshold())
-	{
-		do_stop_by_treshold = true;
-	}
-
-	return !(do_stop_by_iteration || (do_stop_by_treshold && do_stop_by_residual));
-}
 
 template <typename InputHandler>
 VectorXr MixedFERegressionBase<InputHandler>::LeftMultiplyByMonolithic_iterative(const VectorXr &v, Real lambdaS, Real lambdaT)

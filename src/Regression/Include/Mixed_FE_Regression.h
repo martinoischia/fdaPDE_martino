@@ -18,11 +18,22 @@
 template <typename InputHandler>
 class MixedSplineRegression;
 
+template <class T>
+class MixedFERegression_stopping_criterion;
+
+template <class T>
+class SingleIteration;
+
 /*! A base class for the smooth regression.
  */
 template <typename InputHandler>
 class MixedFERegressionBase
 {
+	template <class>
+	friend class SingleIteration;
+	template <class>
+	friend class MixedFERegression_stopping_criterion;
+
 protected:
 	const std::vector<Real> mesh_time_;
 	const UInt N_; //!< Number of spatial basis functions.
