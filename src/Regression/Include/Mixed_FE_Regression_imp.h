@@ -81,7 +81,9 @@ public:
 		auto &N_ = mixedRegressor.N_;
 		auto &M_ = mixedRegressor.M_;
 		const VectorXr *obsp = mixedRegressor.regressionData_.getObservations();
-
+		residual = mixedRegressor.compute_residual(vector, lambdaS, lambdaT);
+		temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
+		mixedRegressor._solution(s, t) = vector;
 		for (UInt k = 0; k < M_; ++k)
 		{
 
@@ -123,9 +125,6 @@ public:
 			// Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t)
 			mixedRegressor._solution(s, t).segment(k * N_, N_) -= mixedRegressor._solution_k_.topRows(N_);
 			mixedRegressor._solution(s, t).segment(N_ * M_ + k * N_, N_) -= mixedRegressor._solution_k_.bottomRows(N_);
-			// Store solution_k for next residual
-			preconditioned_residual.segment(k * N_, N_) = mixedRegressor._solution_k_.topRows(N_);
-			preconditioned_residual.segment(N_ * M_ + k * N_, N_) = mixedRegressor._solution_k_.bottomRows(N_);
 		}
 
 		timer Timer;
@@ -138,14 +137,11 @@ public:
 			beta_rhs = W.transpose() * (*obsp - mixedRegressor.LeftMultiplybyPsi(mixedRegressor._solution(s, t).topRows(mixedRegressor.psi_.cols() * M_)));
 			mixedRegressor._beta(s, t) = mixedRegressor.WTW_inv * (beta_rhs);
 		}
-		// Update the residual
-		residual -= mixedRegressor.LeftMultiplyByMonolithic_iterative(preconditioned_residual, lambdaS, lambdaT);
-		temporary_residual_norm.push_back(residual.norm() / normalizing_factor);
 		Rprintf("residual: %g\n", temporary_residual_norm.back());
 
 		timespec timestop = Timer.stop();
 		Rprintf("step: computation various %d\n", timestop.tv_sec);
-		return vector;
+		return mixedRegressor._solution(s, t);
 	}
 
 	std::vector<Real> &getNormVector() { return temporary_residual_norm; }
@@ -1700,9 +1696,9 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply_iterative(void)
 			options.stopping_criterion_bitmap[1] = false;
 			options.stopping_criterion_bitmap[2] = true;
 			FPI.getOptions() = std::move(options);
-
 			// Solving
 			FPI.compute(_solution(s, t));
+			// Rprintf("matrix F size %d\n", ((std::unique_ptr<FixedPoint::AndersonAccelerator> &)(FPI.getIterator2()))->F.cols());
 			// const auto &temporary_residual_norm = (FPI.getIterator().getIterationFunction().target)->getNormVector();
 			residual_norm__(s, t).resize(temporary_residual_norm.size());
 			for (int idx = 0; idx < temporary_residual_norm.size(); ++idx)

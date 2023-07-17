@@ -247,7 +247,7 @@ public:
 	MatrixXr LeftMultiplybyQ(const MatrixXr &u);
 	VectorXr LeftMultiplyByMonolithic_iterative(const VectorXr &v, Real lambdaS, Real lambdaT);
 	//! A method that computes and return the residual of the monolithic system for vector v.
-	VectorXr compute_residual(VectorXr &v, Real lambdaS, Real lambdaT) { return (LeftMultiplyByMonolithic_iterative(v, lambdaS, lambdaT) - _rightHandSide); };
+	VectorXr compute_residual(const VectorXr &v, Real lambdaS, Real lambdaT) { return (LeftMultiplyByMonolithic_iterative(v, lambdaS, lambdaT) - _rightHandSide); };
 
 	// -- APPLY --
 	//! The function solving the system, used by the children classes. Saves the result in _solution
